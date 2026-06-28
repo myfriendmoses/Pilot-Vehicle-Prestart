@@ -1,0 +1,698 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>GPS - Daily Vehicle Pre-Start</title>
+    
+    <!-- PWA Web Manifest Configuration -->
+    <link rel="manifest" href="data:application/manifest+json,{%22name%22:%22GPS%20Daily%20Vehicle%20Pre-Start%22,%22short_name%22:%22GPS%20Pre-Start%22,%22start_url%22:%22.%22,%22display%22:%22standalone%22,%22background_color%22:%22%23f8fafc%22,%22theme_color%22:%22%231e3a8a%22}">
+    <meta name="theme-color" content="#1e3a8a">
+    <meta name="mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+
+    <style>
+        :root {
+            --primary: #1e3a8a;
+            --primary-hover: #1e40af;
+            --bg: #f8fafc;
+            --surface: #ffffff;
+            --border: #e2e8f0;
+            --text: #0f172a;
+            --text-secondary: #475569;
+            --danger: #ef4444;
+            --danger-hover: #dc2626;
+            --success: #22c55e;
+            --email: #db2777;
+            --email-hover: #be185d;
+        }
+
+        html, body {
+            height: 100%;
+            margin: 0;
+            padding: 0;
+            background-color: var(--bg);
+            color: var(--text);
+            font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+            -webkit-font-smoothing: antialiased;
+        }
+
+        body {
+            padding: 1rem;
+            box-sizing: border-box;
+            max-width: 1200px;
+            margin: 0 auto;
+            overflow-y: auto;
+        }
+
+        .app-header {
+            text-align: center;
+            margin: 0.5rem 0 1.25rem 0;
+        }
+
+        h1 {
+            font-size: 1.15rem;
+            color: var(--primary);
+            margin: 0;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            font-weight: 800;
+        }
+
+        .container {
+            display: grid;
+            grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+            gap: 1.25rem;
+            align-items: start;
+        }
+
+        .form-section {
+            background: var(--surface);
+            padding: 1.25rem;
+            border-radius: 12px;
+            border: 1px solid var(--border);
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05);
+            min-width: 0;
+        }
+
+        h2 {
+            font-size: 1.05rem;
+            margin-top: 0;
+            margin-bottom: 1.25rem;
+            border-bottom: 2px solid var(--border);
+            padding-bottom: 0.5rem;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            color: var(--primary);
+        }
+
+        .save-indicator {
+            font-size: 0.75rem;
+            color: var(--success);
+            font-weight: normal;
+            opacity: 0;
+            transition: opacity 0.3s ease;
+        }
+
+        .form-group {
+            margin-bottom: 1rem;
+            width: 100%;
+        }
+
+        .form-row {
+            display: flex;
+            gap: 1rem;
+        }
+
+        .form-row .form-group {
+            flex: 1;
+        }
+
+        label {
+            display: block;
+            font-weight: 700;
+            font-size: 0.8rem;
+            margin-bottom: 0.4rem;
+            color: var(--text-secondary);
+            text-transform: uppercase;
+            letter-spacing: 0.02em;
+        }
+
+        input[type="text"], input[type="number"], input[type="date"], textarea {
+            width: 100%;
+            padding: 0.75rem;
+            border: 1.5px solid var(--border);
+            border-radius: 8px;
+            box-sizing: border-box;
+            font-family: inherit;
+            font-size: 1rem; 
+            background-color: #fff;
+            transition: border-color 0.2s;
+            -webkit-appearance: none;
+        }
+
+        input:focus, textarea:focus {
+            outline: none;
+            border-color: var(--primary);
+        }
+
+        .check-grid {
+            display: flex;
+            flex-direction: column;
+            gap: 0.75rem;
+            margin: 1.25rem 0;
+            border-top: 2px solid var(--border);
+            padding-top: 1.25rem;
+        }
+
+        .check-grid h3 {
+            font-size: 0.95rem;
+            margin: 0 0 0.5rem 0;
+            color: var(--primary);
+            text-transform: uppercase;
+            letter-spacing: 0.03em;
+        }
+
+        .check-item {
+            display: flex;
+            flex-direction: column;
+            gap: 0.5rem;
+            padding: 0.75rem;
+            background: #f8fafc;
+            border-radius: 8px;
+            border: 1px solid var(--border);
+        }
+
+        .check-item-title {
+            font-size: 0.85rem;
+            font-weight: 700;
+            color: var(--text);
+        }
+
+        .segmented-control {
+            display: flex;
+            background: #e2e8f0;
+            border-radius: 6px;
+            padding: 2px;
+            width: 100%;
+            box-sizing: border-box;
+        }
+
+        .segment-btn {
+            flex: 1;
+            border: none;
+            background: transparent;
+            padding: 0.55rem;
+            font-size: 0.8rem;
+            font-weight: 700;
+            border-radius: 5px;
+            cursor: pointer;
+            color: var(--text-secondary);
+            transition: all 0.2s ease;
+            text-align: center;
+            touch-action: manipulation;
+        }
+
+        .segment-btn.active-pass {
+            background-color: var(--success) !important;
+            color: #ffffff !important;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.15);
+        }
+
+        .segment-btn.active-fail {
+            background-color: var(--danger) !important;
+            color: #ffffff !important;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.15);
+        }
+
+        .segment-btn.active-na {
+            background-color: #64748b !important;
+            color: #ffffff !important;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.15);
+        }
+
+        button.action-btn {
+            background-color: var(--primary);
+            color: white;
+            border: none;
+            padding: 0.85rem;
+            font-size: 0.95rem;
+            font-weight: 700;
+            border-radius: 8px;
+            cursor: pointer;
+            width: 100%;
+            margin-top: 0.5rem;
+            transition: background-color 0.2s;
+            touch-action: manipulation;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+        }
+
+        button.action-btn:hover {
+            background-color: var(--primary-hover);
+        }
+
+        .button-group {
+            display: flex;
+            gap: 0.5rem;
+            margin-top: 1rem;
+            flex-wrap: wrap;
+        }
+
+        .button-group button {
+            margin-top: 0;
+            flex: 1;
+            min-width: 100px;
+            padding: 0.75rem 0.5rem;
+            font-size: 0.85rem;
+        }
+
+        .btn-danger { background-color: var(--danger) !important; }
+        .btn-danger:hover { background-color: var(--danger-hover) !important; }
+        .btn-email { background-color: var(--email) !important; }
+        .btn-email:hover { background-color: var(--email-hover) !important; }
+
+        .output-section {
+            display: flex;
+            flex-direction: column;
+            position: sticky;
+            top: 1rem;
+            min-width: 0;
+        }
+
+        .output-wrapper {
+            background: #ffffff;
+            border: 1.5px solid var(--border);
+            border-radius: 12px;
+            overflow-x: auto; 
+            flex-grow: 1;
+            margin-bottom: 1rem;
+            padding: 1rem;
+            box-shadow: inset 0 2px 4px rgba(0,0,0,0.02);
+            -webkit-overflow-scrolling: touch;
+            width: 100%;
+            box-sizing: border-box;
+        }
+
+        pre {
+            background: transparent;
+            color: #000000;
+            padding: 0;
+            margin: 0;
+            font-family: "Courier New", Courier, monospace;
+            font-size: 0.85rem;
+            line-height: 1.35;
+            white-space: pre; 
+        }
+
+        @media (max-width: 850px) {
+            .container {
+                grid-template-columns: minmax(0, 1fr);
+            }
+            .output-section {
+                position: static;
+            }
+            .form-row {
+                flex-direction: column;
+                gap: 0;
+            }
+            body {
+                padding: 0.5rem;
+            }
+        }
+
+        @media (max-width: 600px) {
+            pre {
+                font-size: 0.72rem; 
+            }
+            .form-section {
+                padding: 0.85rem;
+            }
+        }
+
+        @media (max-width: 400px) {
+            pre {
+                font-size: 0.65rem; 
+            }
+        }
+    </style>
+</head>
+<body>
+
+    <div class="app-header">
+        <h1>Daily Vehicle Pre-Start</h1>
+    </div>
+
+    <div class="container">
+        <!-- Input Form -->
+        <div class="form-section">
+            <h2>Inspection Details <span id="saveIndicator" class="save-indicator">Autosaved ✓</span></h2>
+            
+            <div class="form-row">
+                <div class="form-group">
+                    <label>Inspection Date</label>
+                    <input type="date" id="date">
+                </div>
+                <div class="form-group">
+                    <label>Vehicle Rego</label>
+                    <input type="text" id="rego" placeholder="e.g. ABC123" autocomplete="off" autocorrect="off" autocapitalize="characters">
+                </div>
+            </div>
+
+            <div class="form-row">
+                <div class="form-group">
+                    <label>Driver / Inspector</label>
+                    <input type="text" id="driver" placeholder="Enter full name">
+                </div>
+                <div class="form-group">
+                    <label>Odometer Reading</label>
+                    <input type="number" id="odometer" placeholder="KM" inputmode="numeric" pattern="[0-9]*">
+                </div>
+            </div>
+
+            <div class="check-grid">
+                <h3>System Inspection Checklist</h3>
+                
+                <div class="check-item">
+                    <div class="check-item-title">Engine Oil & Fluids Level</div>
+                    <div class="segmented-control" data-id="engineOil">
+                        <button type="button" class="segment-btn" onclick="selectCheck('engineOil', 'PASS')">PASS</button>
+                        <button type="button" class="segment-btn" onclick="selectCheck('engineOil', 'FAIL')">FAIL</button>
+                        <button type="button" class="segment-btn" onclick="selectCheck('engineOil', 'N/A')">N/A</button>
+                    </div>
+                </div>
+
+                <div class="check-item">
+                    <div class="check-item-title">Tyre Tread & Pressures</div>
+                    <div class="segmented-control" data-id="tyreCondition">
+                        <button type="button" class="segment-btn" onclick="selectCheck('tyreCondition', 'PASS')">PASS</button>
+                        <button type="button" class="segment-btn" onclick="selectCheck('tyreCondition', 'FAIL')">FAIL</button>
+                        <button type="button" class="segment-btn" onclick="selectCheck('tyreCondition', 'N/A')">N/A</button>
+                    </div>
+                </div>
+
+                <div class="check-item">
+                    <div class="check-item-title">All Lights & Indicators</div>
+                    <div class="segmented-control" data-id="lightsOperation">
+                        <button type="button" class="segment-btn" onclick="selectCheck('lightsOperation', 'PASS')">PASS</button>
+                        <button type="button" class="segment-btn" onclick="selectCheck('lightsOperation', 'FAIL')">FAIL</button>
+                        <button type="button" class="segment-btn" onclick="selectCheck('lightsOperation', 'N/A')">N/A</button>
+                    </div>
+                </div>
+
+                <div class="check-item">
+                    <div class="check-item-title">Windscreen, Wipers & Washers</div>
+                    <div class="segmented-control" data-id="windscreenWipers">
+                        <button type="button" class="segment-btn" onclick="selectCheck('windscreenWipers', 'PASS')">PASS</button>
+                        <button type="button" class="segment-btn" onclick="selectCheck('windscreenWipers', 'FAIL')">FAIL</button>
+                        <button type="button" class="segment-btn" onclick="selectCheck('windscreenWipers', 'N/A')">N/A</button>
+                    </div>
+                </div>
+
+                <div class="check-item">
+                    <div class="check-item-title">Brakes & Handbrake Operation</div>
+                    <div class="segmented-control" data-id="brakeOperation">
+                        <button type="button" class="segment-btn" onclick="selectCheck('brakeOperation', 'PASS')">PASS</button>
+                        <button type="button" class="segment-btn" onclick="selectCheck('brakeOperation', 'FAIL')">FAIL</button>
+                        <button type="button" class="segment-btn" onclick="selectCheck('brakeOperation', 'N/A')">N/A</button>
+                    </div>
+                </div>
+
+                <div class="check-item">
+                    <div class="check-item-title">Seatbelts & Cabin Safety Gear</div>
+                    <div class="segmented-control" data-id="seatbelts">
+                        <button type="button" class="segment-btn" onclick="selectCheck('seatbelts', 'PASS')">PASS</button>
+                        <button type="button" class="segment-btn" onclick="selectCheck('seatbelts', 'FAIL')">FAIL</button>
+                        <button type="button" class="segment-btn" onclick="selectCheck('seatbelts', 'N/A')">N/A</button>
+                    </div>
+                </div>
+
+                <div class="check-item">
+                    <div class="check-item-title">Pilot Lights & Signs</div>
+                    <div class="segmented-control" data-id="pilotEquipment">
+                        <button type="button" class="segment-btn" onclick="selectCheck('pilotEquipment', 'PASS')">PASS</button>
+                        <button type="button" class="segment-btn" onclick="selectCheck('pilotEquipment', 'FAIL')">FAIL</button>
+                        <button type="button" class="segment-btn" onclick="selectCheck('pilotEquipment', 'N/A')">N/A</button>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="form-group">
+                <label>Defects / Items Requiring Attention</label>
+                <textarea id="defects" rows="3" placeholder="Describe any issues, leaks, or items requiring repairs..."></textarea>
+            </div>
+
+            <div class="button-group">
+                <button type="button" class="action-btn btn-danger" onclick="clearForm()">Clear Form</button>
+                <button type="button" class="action-btn" onclick="generateReport()">Generate Summary</button>
+            </div>
+        </div>
+
+        <!-- Output Display -->
+        <div class="output-section">
+            <div class="output-wrapper" id="outputWrapper">
+                <pre id="output">Complete the checklist and tap "Generate Summary" to compile your logs here.</pre>
+            </div>
+            <div class="button-group">
+                <button id="copyBtn" class="action-btn" onclick="copyToClipboard()">Copy Summary</button>
+                <button class="action-btn btn-email" onclick="sendViaEmail()">Send via Email</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let saveTimeout;
+        const checkIds = ['engineOil', 'tyreCondition', 'lightsOperation', 'windscreenWipers', 'brakeOperation', 'seatbelts', 'pilotEquipment'];
+        let stateValues = {};
+
+        if ('serviceWorker' in navigator) {
+            try {
+                const swCode = `
+                    self.addEventListener('install', e => self.skipWaiting());
+                    self.addEventListener('fetch', e => e.respondWith(fetch(e.request).catch(() => caches.match(e.request))));
+                `;
+                const blob = new Blob([swCode], {type: 'application/javascript'});
+                const blobUrl = URL.createObjectURL(blob);
+                navigator.serviceWorker.register(blobUrl).catch(err => {
+                    // Suppressed registration failure in preview iframe
+                });
+            } catch (e) {
+                // Suppressed synchronous initialization failure in preview iframe
+            }
+        }
+
+        window.onload = function() {
+            loadInputs();
+
+            if (!document.getElementById('date').value) {
+                const today = new Date().toISOString().split('T')[0];
+                document.getElementById('date').value = today;
+            }
+
+            document.querySelectorAll('input, textarea').forEach(input => {
+                input.addEventListener('input', () => {
+                    saveInputs();
+                    showSaveIndicator();
+                    generateReport();
+                });
+            });
+
+            checkIds.forEach(id => {
+                if (!stateValues[id]) {
+                    selectCheck(id, 'PASS', false);
+                }
+            });
+
+            if (document.getElementById('rego').value || document.getElementById('driver').value) {
+                generateReport();
+            }
+        };
+
+        function selectCheck(id, value, shouldSave = true) {
+            stateValues[id] = value;
+            
+            const control = document.querySelector(`.segmented-control[data-id="${id}"]`);
+            if (control) {
+                const buttons = control.querySelectorAll('.segment-btn');
+                buttons.forEach(btn => {
+                    btn.classList.remove('active-pass', 'active-fail', 'active-na');
+                    
+                    if (btn.textContent.trim() === value) {
+                        if (value === 'PASS') btn.classList.add('active-pass');
+                        else if (value === 'FAIL') btn.classList.add('active-fail');
+                        else if (value === 'N/A') btn.classList.add('active-na');
+                    }
+                });
+            }
+
+            if (shouldSave) {
+                saveInputs();
+                showSaveIndicator();
+                generateReport(); 
+            }
+        }
+
+        /**************************************************************
+         * Local Storage Management
+         **************************************************************/
+        function saveInputs() {
+            const data = {
+                textInputs: {},
+                checkInputs: stateValues
+            };
+            document.querySelectorAll('input, textarea').forEach(input => {
+                data.textInputs[input.id] = input.value;
+            });
+            localStorage.setItem('gps_vehicle_check_cache', JSON.stringify(data));
+        }
+
+        function loadInputs() {
+            const savedData = localStorage.getItem('gps_vehicle_check_cache');
+            if (savedData) {
+                const data = JSON.parse(savedData);
+                if (data.textInputs) {
+                    for (const id in data.textInputs) {
+                        const el = document.getElementById(id);
+                        if (el) el.value = data.textInputs[id];
+                    }
+                }
+                if (data.checkInputs) {
+                    stateValues = data.checkInputs;
+                    for (const id in stateValues) {
+                        selectCheck(id, stateValues[id], false);
+                    }
+                }
+            }
+        }
+
+        function clearForm() {
+            if (confirm("Are you sure you want to clear all inputs? This cannot be undone.")) {
+                localStorage.removeItem('gps_vehicle_check_cache');
+                document.querySelectorAll('input, textarea').forEach(input => {
+                    input.value = '';
+                });
+                
+                const today = new Date().toISOString().split('T')[0];
+                document.getElementById('date').value = today;
+
+                checkIds.forEach(id => {
+                    selectCheck(id, 'PASS', false);
+                });
+                
+                saveInputs();
+                document.getElementById('output').textContent = 'Complete the checklist and tap "Generate Summary" to compile your logs here.';
+            }
+        }
+
+        function showSaveIndicator() {
+            const indicator = document.getElementById('saveIndicator');
+            indicator.style.opacity = '1';
+            clearTimeout(saveTimeout);
+            saveTimeout = setTimeout(() => { indicator.style.opacity = '0'; }, 1500);
+        }
+
+        /**************************************************************
+         * Data Formatting and Generation
+         **************************************************************/
+        function formatDate() {
+            const v = document.getElementById('date').value;
+            if (!v) return '';
+            const parts = v.split('-'); 
+            return `${parts[2]}/${parts[1]}/${parts[0]}`;
+        }
+
+        function formatLine(col1, col2) {
+            const pad1 = 30; 
+            const maxRightColumnWidth = 40; 
+            
+            let label = col1.padEnd(pad1);
+            let text = String(col2);
+            
+            if (text.length <= maxRightColumnWidth) {
+                return label + text + "\n";
+            }
+            
+            let lines = [];
+            while (text.length > 0) {
+                let chunk = text.substring(0, maxRightColumnWidth);
+                
+                if (text.length > maxRightColumnWidth) {
+                    let lastSpace = chunk.lastIndexOf(" ");
+                    if (lastSpace > maxRightColumnWidth * 0.4) {
+                        chunk = text.substring(0, lastSpace);
+                    }
+                }
+                
+                lines.push(chunk.trim());
+                text = text.substring(chunk.length).trim();
+            }
+            
+            let output = label + lines[0] + "\n";
+            for (let i = 1; i < lines.length; i++) {
+                output += "".padEnd(pad1) + lines[i] + "\n";
+            }
+            return output;
+        }
+
+        function generateReport() {
+            const regoVal = (document.getElementById('rego').value || '[REGO]').toUpperCase();
+            
+            let txt = "GOODWIN PILOTING SERVICES DAILY VEHICLE PRE-START\n\n";
+            txt += formatLine("DATE OF INSPECTION", formatDate() || '[DATE]');
+            txt += formatLine("VEHICLE REGO", regoVal);
+            txt += formatLine("DRIVER / INSPECTOR", document.getElementById('driver').value || '[DRIVER]');
+            txt += formatLine("CURRENT ODOMETER", document.getElementById('odometer').value ? document.getElementById('odometer').value + " KM" : '[ODOMETER READING]') + "\n";
+            
+            txt += "INSPECTION CHECKLIST\n";
+            
+            txt += formatLine("Engine Oil & Fluids Level", stateValues['engineOil'] || 'PASS');
+            txt += formatLine("Tyre Tread & Pressures", stateValues['tyreCondition'] || 'PASS');
+            txt += formatLine("All Lights & Indicators", stateValues['lightsOperation'] || 'PASS');
+            txt += formatLine("Windscreen, Wipers & Washers", stateValues['windscreenWipers'] || 'PASS');
+            txt += formatLine("Brakes & Handbrake Operation", stateValues['brakeOperation'] || 'PASS');
+            txt += formatLine("Seatbelts & Cabin Safety Gear", stateValues['seatbelts'] || 'PASS');
+            txt += formatLine("Pilot Lights & Signs", stateValues['pilotEquipment'] || 'PASS') + "\n";
+            
+            txt += "DEFECTS & REPAIRS REQUIRED\n";
+            const defectsText = (document.getElementById('defects').value || "No defects reported. Vehicle fit for service.").trim();
+            
+            let notesResult = "";
+            let text = defectsText;
+            const maxNoteWidth = 70; 
+            
+            while (text.length > 0) {
+                let chunk = text.substring(0, maxNoteWidth);
+                if (text.length > maxNoteWidth) {
+                    let lastSpace = chunk.lastIndexOf(" ");
+                    if (lastSpace > maxNoteWidth * 0.5) {
+                        chunk = text.substring(0, lastSpace);
+                    }
+                }
+                notesResult += chunk.trim() + "\n";
+                text = text.substring(chunk.length).trim();
+            }
+
+            txt += notesResult;
+
+            document.getElementById('output').textContent = txt;
+        }
+
+        /**************************************************************
+         * Action Triggers (Clipboard and Email Client)
+         **************************************************************/
+        function copyToClipboard() {
+            const outputText = document.getElementById('output').textContent;
+            const btn = document.getElementById('copyBtn');
+            const textArea = document.createElement("textarea");
+            
+            textArea.value = outputText;
+            textArea.style.position = "fixed";
+            textArea.style.top = "0";
+            textArea.style.left = "0";
+            document.body.appendChild(textArea);
+            textArea.focus();
+            textArea.select();
+            
+            try {
+                document.execCommand('copy');
+                btn.textContent = "Copied!";
+                setTimeout(() => { btn.textContent = "Copy Summary"; }, 2000);
+            } catch (err) {
+                alert("Copy failed. Please manually select the summary block.");
+            }
+            document.body.removeChild(textArea);
+        }
+
+        function sendViaEmail() {
+            const rego = (document.getElementById('rego').value || 'Vehicle').toUpperCase();
+            const dateStr = formatDate();
+            const outputText = document.getElementById('output').textContent;
+            
+            const subject = encodeURIComponent("GPS Vehicle Check - " + rego + " (" + dateStr + ")");
+            const body = encodeURIComponent(outputText);
+            window.location.href = `mailto:?subject=${subject}&body=${body}`;
+        }
+    </script>
+</body>
+</html>
