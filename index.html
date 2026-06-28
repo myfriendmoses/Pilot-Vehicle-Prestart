@@ -6,11 +6,11 @@
     <title>GPS - Daily Vehicle Pre-Start</title>
     
     <!-- PWA Web Manifest Configuration -->
-    <link rel="manifest" href="data:application/manifest+json,{%22name%22:%22GPS%20Daily%20Vehicle%20Pre-Start%22,%22short_name%22:%22GPS%20Pre-Start%22,%22start_url%22:%22.%22,%22display%22:%22standalone%22,%22background_color%22:%22%23f8fafc%22,%22theme_color%22:%22%231e3a8a%22,%22icons%22:[{%22src%22:%22/Pilot-Vehicle-Prestart/logo.png%22,%22sizes%22:%22512x512%22,%22type%22:%22image/png%22}]}">
+    <link rel="manifest" href="data:application/manifest+json,{%22name%22:%22GPS%20Daily%20Vehicle%20Pre-Start%22,%22short_name%22:%22GPS%20Pre-Start%22,%22start_url%22:%22.%22,%22display%22:%22standalone%22,%22background_color%22:%22%23f8fafc%22,%22theme_color%22:%22%231e3a8a%22,%22icons%22:[{%22src%22:%22logo.png%22,%22sizes%22:%22512x512%22,%22type%22:%22image/png%22}]}">
     
     <!-- App Icons for Mobile Home Screen & Browser Tabs -->
-    <link rel="icon" type="image/png" href="/Pilot-Vehicle-Prestart/logo.png">
-    <link class="apple-touch-icon" rel="apple-touch-icon" href="/Pilot-Vehicle-Prestart/logo.png">
+    <link rel="icon" type="image/png" href="logo.png">
+    <link class="apple-touch-icon" rel="apple-touch-icon" href="logo.png">
     
     <meta name="theme-color" content="#1e3a8a">
     <meta name="mobile-web-app-capable" content="yes">
@@ -500,7 +500,7 @@
     <!-- Gate Shield Overlay Overlay -->
     <div id="gateShield" class="gate-shield">
         <div class="gate-content">
-            <img class="gate-logo" src="/Pilot-Vehicle-Prestart/logo.png" alt="GPS Logo">
+            <img class="gate-logo" src="logo.png" alt="GPS Logo">
             <h2 class="gate-title">App Installation Required</h2>
             <p class="gate-subtitle">To log Pre-Starts offline and access vehicle checklists on-site, this web app must be installed locally on your home screen.</p>
             
@@ -554,7 +554,7 @@
     </div>
 
     <div class="app-header">
-        <img class="app-logo" src="/Pilot-Vehicle-Prestart/logo.png" alt="GPS Logo">
+        <img class="app-logo" src="logo.png" alt="GPS Logo">
         <h1>Daily Vehicle Pre-Start</h1>
     </div>
 
@@ -1026,6 +1026,9 @@
             document.body.removeChild(textArea);
         }
 
+        /**************************************************************
+         * Action Triggers (Clipboard and Email Client)
+         **************************************************************/
         function sendViaEmail() {
             const rego = (document.getElementById('rego').value || 'Vehicle').toUpperCase();
             const dateStr = formatDate();
