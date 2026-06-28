@@ -351,6 +351,30 @@
                 </div>
             </div>
 
+            <!-- Service & RUC compliance row -->
+            <div class="form-row">
+                <div class="form-group">
+                    <label>Service Due (KM)</label>
+                    <input type="number" id="serviceDue" placeholder="e.g. 110000" inputmode="numeric" pattern="[0-9]*">
+                </div>
+                <div class="form-group">
+                    <label>RUC Due (KM)</label>
+                    <input type="number" id="rucDue" placeholder="e.g. 115000" inputmode="numeric" pattern="[0-9]*">
+                </div>
+            </div>
+
+            <!-- WOF & Rego dates row -->
+            <div class="form-row">
+                <div class="form-group">
+                    <label>WOF Due Date</label>
+                    <input type="date" id="wofDue">
+                </div>
+                <div class="form-group">
+                    <label>Registration Due Date</label>
+                    <input type="date" id="regoDue">
+                </div>
+            </div>
+
             <div class="check-grid">
                 <h3>System Inspection Checklist</h3>
                 
@@ -471,11 +495,13 @@
             }
 
             document.querySelectorAll('input, textarea').forEach(input => {
-                input.addEventListener('input', () => {
+                const triggerUpdate = () => {
                     saveInputs();
                     showSaveIndicator();
                     generateReport();
-                });
+                };
+                input.addEventListener('input', triggerUpdate);
+                input.addEventListener('change', triggerUpdate);
             });
 
             checkIds.forEach(id => {
@@ -582,64 +608,66 @@
             return `${parts[2]}/${parts[1]}/${parts[0]}`;
         }
 
-        function formatLine(col1, col2) {
-            const pad1 = 30; 
-            const maxRightColumnWidth = 40; 
-            
-            let label = col1.padEnd(pad1);
-            let text = String(col2);
-            
-            if (text.length <= maxRightColumnWidth) {
-                return label + text + "\n";
-            }
-            
-            let lines = [];
-            while (text.length > 0) {
-                let chunk = text.substring(0, maxRightColumnWidth);
-                
-                if (text.length > maxRightColumnWidth) {
-                    let lastSpace = chunk.lastIndexOf(" ");
-                    if (lastSpace > maxRightColumnWidth * 0.4) {
-                        chunk = text.substring(0, lastSpace);
-                    }
-                }
-                
-                lines.push(chunk.trim());
-                text = text.substring(chunk.length).trim();
-            }
-            
-            let output = label + lines[0] + "\n";
-            for (let i = 1; i < lines.length; i++) {
-                output += "".padEnd(pad1) + lines[i] + "\n";
-            }
-            return output;
+        function formatCustomDate(id) {
+            const v = document.getElementById(id).value;
+            if (!v) return '';
+            const parts = v.split('-'); 
+            return `${parts[2]}/${parts[1]}/${parts[0]}`;
         }
 
         function generateReport() {
             const regoVal = (document.getElementById('rego').value || '[REGO]').toUpperCase();
+            const dateVal = formatDate() || '[DATE]';
+            const driverVal = document.getElementById('driver').value || '[DRIVER]';
+            const odometerVal = document.getElementById('odometer').value ? document.getElementById('odometer').value + " KM" : '[ODOMETER READING]';
+            
+            // Format new compliance values
+            const serviceDueVal = document.getElementById('serviceDue').value ? document.getElementById('serviceDue').value + " KM" : '[SERVICE DUE]';
+            const rucDueVal = document.getElementById('rucDue').value ? document.getElementById('rucDue').value + " KM" : '[RUC DUE]';
+            const wofDueVal = formatCustomDate('wofDue') || '[WOF DUE]';
+            const regoDueVal = formatCustomDate('regoDue') || '[REGO DUE]';
             
             let txt = "GOODWIN PILOTING SERVICES DAILY VEHICLE PRE-START\n\n";
-            txt += formatLine("DATE OF INSPECTION", formatDate() || '[DATE]');
-            txt += formatLine("VEHICLE REGO", regoVal);
-            txt += formatLine("DRIVER / INSPECTOR", document.getElementById('driver').value || '[DRIVER]');
-            txt += formatLine("CURRENT ODOMETER", document.getElementById('odometer').value ? document.getElementById('odometer').value + " KM" : '[ODOMETER READING]') + "\n";
             
-            txt += "INSPECTION CHECKLIST\n";
+            // Render beautiful ASCII Tables that map cleanly as a grid inside email apps
+            txt += "+------------------------------------------------------------+\n";
+            txt += "|                     INSPECTION DETAILS                     |\n";
+            txt += "+------------------------------+-----------------------------+\n";
+            txt += "| DATE OF INSPECTION           | " + dateVal.padEnd(27) + " |\n";
+            txt += "| VEHICLE REGO                 | " + regoVal.padEnd(27) + " |\n";
+            txt += "| DRIVER / INSPECTOR           | " + driverVal.padEnd(27) + " |\n";
+            txt += "| CURRENT ODOMETER             | " + odometerVal.padEnd(27) + " |\n";
+            txt += "| SERVICE DUE (KM)             | " + serviceDueVal.padEnd(27) + " |\n";
+            txt += "| RUC DUE (KM)                 | " + rucDueVal.padEnd(27) + " |\n";
+            txt += "| WOF DUE DATE                 | " + wofDueVal.padEnd(27) + " |\n";
+            txt += "| REGO DUE DATE                | " + regoDueVal.padEnd(27) + " |\n";
+            txt += "+------------------------------+-----------------------------+\n\n";
             
-            txt += formatLine("Engine Oil & Fluids Level", stateValues['engineOil'] || 'PASS');
-            txt += formatLine("Tyre Tread & Pressures", stateValues['tyreCondition'] || 'PASS');
-            txt += formatLine("All Lights & Indicators", stateValues['lightsOperation'] || 'PASS');
-            txt += formatLine("Windscreen, Wipers & Washers", stateValues['windscreenWipers'] || 'PASS');
-            txt += formatLine("Brakes & Handbrake Operation", stateValues['brakeOperation'] || 'PASS');
-            txt += formatLine("Seatbelts & Cabin Safety Gear", stateValues['seatbelts'] || 'PASS');
-            txt += formatLine("Pilot Lights & Signs", stateValues['pilotEquipment'] || 'PASS') + "\n";
+            txt += "+---------------------------------------------+--------------+\n";
+            txt += "| SYSTEM INSPECTION CHECKLIST                 | STATUS       |\n";
+            txt += "+---------------------------------------------+--------------+\n";
+            
+            const items = [
+                ["Engine Oil & Fluids Level", stateValues['engineOil'] || 'PASS'],
+                ["Tyre Tread & Pressures", stateValues['tyreCondition'] || 'PASS'],
+                ["All Lights & Indicators", stateValues['lightsOperation'] || 'PASS'],
+                ["Windscreen, Wipers & Washers", stateValues['windscreenWipers'] || 'PASS'],
+                ["Brakes & Handbrake Operation", stateValues['brakeOperation'] || 'PASS'],
+                ["Seatbelts & Cabin Safety Gear", stateValues['seatbelts'] || 'PASS'],
+                ["Pilot Lights & Signs", stateValues['pilotEquipment'] || 'PASS']
+            ];
+            
+            items.forEach(item => {
+                txt += "| " + item[0].padEnd(43) + " | " + item[1].padEnd(12) + " |\n";
+            });
+            txt += "+---------------------------------------------+--------------+\n\n";
             
             txt += "DEFECTS & REPAIRS REQUIRED\n";
             const defectsText = (document.getElementById('defects').value || "No defects reported. Vehicle fit for service.").trim();
             
             let notesResult = "";
             let text = defectsText;
-            const maxNoteWidth = 70; 
+            const maxNoteWidth = 62; 
             
             while (text.length > 0) {
                 let chunk = text.substring(0, maxNoteWidth);
