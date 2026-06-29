@@ -1148,9 +1148,10 @@
             const dateStr = formatDate();
             const outputText = document.getElementById('output').textContent;
             
+            const recipient = "docs@gpspilots.co.nz";
             const subject = encodeURIComponent("GPS Vehicle Check - " + rego + " (" + dateStr + ")");
             const body = encodeURIComponent(outputText);
-            window.location.href = `mailto:?subject=${subject}&body=${body}`;
+            window.location.href = `mailto:${recipient}?subject=${subject}&body=${body}`;
         }
     </script>
 </body>
