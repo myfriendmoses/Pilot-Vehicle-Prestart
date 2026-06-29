@@ -472,8 +472,9 @@
             border-radius: 8px;
             font-size: 0.825rem;
             line-height: 1.45;
+            margin-top: 0.5rem;
             margin-bottom: 1rem;
-            display: none; /* Changed display: flex to display: none to hide by default */
+            display: none; /* Hidden by default; displayed dynamically when hasActiveDefect is true */
             align-items: center;
             gap: 0.65rem;
             box-sizing: border-box;
@@ -525,7 +526,7 @@
 </head>
 <body>
 
-    <!-- Gate Shield Overlay Overlay -->
+    <!-- Gate Shield Overlay -->
     <div id="gateShield" class="gate-shield">
         <div class="gate-content">
             <img class="gate-logo" src="logo.png" alt="GPS Logo">
@@ -726,6 +727,12 @@
                 <textarea id="defects" rows="3" placeholder="Describe any issues, leaks, or items requiring repairs..."></textarea>
             </div>
 
+            <!-- Warning Message Box (Now located directly below the defects textarea box) -->
+            <div class="warning-box" id="defectPhotoWarning">
+                <span class="warning-icon" id="warningBoxIcon">📸</span>
+                <span id="warningBoxText">Please attach photos of defects to email before sending.</span>
+            </div>
+
             <div class="button-group">
                 <button type="button" class="action-btn btn-danger" onclick="clearForm()">Clear Form</button>
                 <button type="button" class="action-btn" onclick="generateReport()">Generate Summary</button>
@@ -736,12 +743,6 @@
         <div class="output-section">
             <div class="output-wrapper" id="outputWrapper">
                 <pre id="output">Ready to generate Summary.</pre>
-            </div>
-            
-            <!-- Warning Message Box -->
-            <div class="warning-box" id="defectPhotoWarning">
-                <span class="warning-icon" id="warningBoxIcon">📸</span>
-                <span id="warningBoxText">Please attach photos of defects to email before sending.</span>
             </div>
 
             <div class="button-group">
@@ -988,6 +989,37 @@
             return `${parts[2]}/${parts[1]}/${parts[0]}`;
         }
 
+        // Helper to calculate remaining days until a target date
+        function getDaysRemaining(targetId) {
+            const targetValue = document.getElementById(targetId).value;
+            const inspectDateValue = document.getElementById('date').value;
+            if (!targetValue || !inspectDateValue) return '';
+            
+            const targetDate = new Date(targetValue + 'T00:00:00');
+            const inspectDate = new Date(inspectDateValue + 'T00:00:00');
+            
+            const diffTime = targetDate - inspectDate;
+            const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+            
+            if (diffDays <= 0) {
+                return "DUE NOW";
+            }
+            return `${diffDays} Day${diffDays > 1 ? 's' : ''}`;
+        }
+
+        // Helper to calculate remaining KMs until a target compliance mark
+        function getKmRemaining(targetId) {
+            const targetValue = parseInt(document.getElementById(targetId).value, 10);
+            const odomValue = parseInt(document.getElementById('odometer').value, 10);
+            if (isNaN(targetValue) || isNaN(odomValue)) return '';
+            
+            const diff = targetValue - odomValue;
+            if (diff <= 0) {
+                return "DUE NOW";
+            }
+            return `${diff} KM`;
+        }
+
         // Output grid alignment layout helper
         function formatLine(col1, col2) {
             const pad1 = 30; 
@@ -1028,10 +1060,19 @@
             const driverVal = document.getElementById('driver').value || '[DRIVER]';
             const odometerVal = document.getElementById('odometer').value ? document.getElementById('odometer').value + " KM" : '[ODOMETER READING]';
             
-            const serviceDueVal = document.getElementById('serviceDue').value ? document.getElementById('serviceDue').value + " KM" : '[SERVICE DUE]';
-            const rucDueVal = document.getElementById('rucDue').value ? document.getElementById('rucDue').value + " KM" : '[RUC DUE]';
-            const wofDueVal = formatCustomDate('wofDue') || '[WOF DUE]';
-            const regoDueVal = formatCustomDate('regoDue') || '[REGO DUE]';
+            const serviceDueRaw = document.getElementById('serviceDue').value;
+            const serviceKm = getKmRemaining('serviceDue');
+            const serviceDueVal = serviceDueRaw ? serviceDueRaw + " KM" + (serviceKm ? ` (${serviceKm})` : '') : '[SERVICE DUE]';
+
+            const rucDueRaw = document.getElementById('rucDue').value;
+            const rucKm = getKmRemaining('rucDue');
+            const rucDueVal = rucDueRaw ? rucDueRaw + " KM" + (rucKm ? ` (${rucKm})` : '') : '[RUC DUE]';
+
+            const wofDays = getDaysRemaining('wofDue');
+            const wofDueVal = formatCustomDate('wofDue') ? formatCustomDate('wofDue') + (wofDays ? ` (${wofDays})` : '') : '[WOF DUE]';
+
+            const regoDays = getDaysRemaining('regoDue');
+            const regoDueVal = formatCustomDate('regoDue') ? formatCustomDate('regoDue') + (regoDays ? ` (${regoDays})` : '') : '[REGO DUE]';
             
             let txt = "GOODWIN PILOTING SERVICES DAILY VEHICLE PRE-START\n\n";
             
@@ -1088,14 +1129,9 @@
                 hasActiveDefect = true;
             }
 
-            // Append notice directly into output text if defects are noted
-            if (hasActiveDefect) {
-                txt += "\n⚠️ REMINDER: Please attach photos of defects to email before sending.\n";
-            }
-
             document.getElementById('output').textContent = txt;
 
-            // Dynamically manage photo warning visibility and styling
+            // Dynamically manage photo warning visibility and styling (Now embedded below the defects input box on the left)
             const warningBox = document.getElementById('defectPhotoWarning');
             const icon = document.getElementById('warningBoxIcon');
             const boxText = document.getElementById('warningBoxText');
