@@ -9,8 +9,8 @@
     <link rel="manifest" href="data:application/manifest+json,{%22name%22:%22GPS%20Daily%20Vehicle%20Pre-Start%22,%22short_name%22:%22GPS%20Pre-Start%22,%22start_url%22:%22.%22,%22display%22:%22standalone%22,%22background_color%22:%22%23f8fafc%22,%22theme_color%22:%22%231e3a8a%22,%22icons%22:[{%22src%22:%22logo.png%22,%22sizes%22:%22512x512%22,%22type%22:%22image/png%22}]}">
     
     <!-- App Icons for Mobile Home Screen & Browser Tabs -->
-    <link rel="icon" type="image/png" href="logo.png">
     <link class="apple-touch-icon" rel="apple-touch-icon" href="logo.png">
+    <link rel="icon" type="image/png" href="logo.png">
     
     <meta name="theme-color" content="#1e3a8a">
     <meta name="mobile-web-app-capable" content="yes">
@@ -463,6 +463,34 @@
             white-space: pre; 
         }
 
+        /* Responsive Photo Defect Warning Alert Banner */
+        .warning-box {
+            background-color: #fffbeb;
+            border: 1.5px solid #fcd34d;
+            color: #78350f;
+            padding: 0.75rem 1rem;
+            border-radius: 8px;
+            font-size: 0.825rem;
+            line-height: 1.45;
+            margin-bottom: 1rem;
+            display: none; /* Changed display: flex to display: none to hide by default */
+            align-items: center;
+            gap: 0.65rem;
+            box-sizing: border-box;
+            width: 100%;
+            transition: all 0.2s ease-in-out;
+        }
+
+        .warning-box strong {
+            color: #92400e;
+        }
+
+        .warning-icon {
+            font-size: 1.15rem;
+            flex-shrink: 0;
+            user-select: none;
+        }
+
         @media (max-width: 850px) {
             .container {
                 grid-template-columns: minmax(0, 1fr);
@@ -612,6 +640,17 @@
             <div class="check-grid">
                 <h3>System Inspection Checklist</h3>
                 
+                <!-- 1. Body & Panel Condition -->
+                <div class="check-item">
+                    <div class="check-item-title">Body & Panel Condition</div>
+                    <div class="segmented-control" data-id="bodyPanel">
+                        <button type="button" class="segment-btn" onclick="selectCheck('bodyPanel', 'PASS')">PASS</button>
+                        <button type="button" class="segment-btn" onclick="selectCheck('bodyPanel', 'FAIL')">FAIL</button>
+                        <button type="button" class="segment-btn" onclick="selectCheck('bodyPanel', 'N/A')">N/A</button>
+                    </div>
+                </div>
+
+                <!-- 2. Engine Oil & Fluids -->
                 <div class="check-item">
                     <div class="check-item-title">Engine Oil & Fluids Level</div>
                     <div class="segmented-control" data-id="engineOil">
@@ -621,6 +660,7 @@
                     </div>
                 </div>
 
+                <!-- 3. Tyres & Wheels -->
                 <div class="check-item">
                     <div class="check-item-title">Tyre Tread & Pressures</div>
                     <div class="segmented-control" data-id="tyreCondition">
@@ -630,6 +670,7 @@
                     </div>
                 </div>
 
+                <!-- 4. Lights & Indicators -->
                 <div class="check-item">
                     <div class="check-item-title">All Lights & Indicators</div>
                     <div class="segmented-control" data-id="lightsOperation">
@@ -639,6 +680,7 @@
                     </div>
                 </div>
 
+                <!-- 5. Windscreen & Wipers -->
                 <div class="check-item">
                     <div class="check-item-title">Windscreen, Wipers & Washers</div>
                     <div class="segmented-control" data-id="windscreenWipers">
@@ -648,6 +690,7 @@
                     </div>
                 </div>
 
+                <!-- 6. Brakes & Handbrake -->
                 <div class="check-item">
                     <div class="check-item-title">Brakes & Handbrake Operation</div>
                     <div class="segmented-control" data-id="brakeOperation">
@@ -657,6 +700,7 @@
                     </div>
                 </div>
 
+                <!-- 7. Seatbelts & Cabin -->
                 <div class="check-item">
                     <div class="check-item-title">Seatbelts & Cabin Safety Gear</div>
                     <div class="segmented-control" data-id="seatbelts">
@@ -666,6 +710,7 @@
                     </div>
                 </div>
 
+                <!-- 8. Pilot Equipment -->
                 <div class="check-item">
                     <div class="check-item-title">Pilot Lights & Signs</div>
                     <div class="segmented-control" data-id="pilotEquipment">
@@ -690,8 +735,15 @@
         <!-- Output Display -->
         <div class="output-section">
             <div class="output-wrapper" id="outputWrapper">
-                <pre id="output">Complete the checklist and tap "Generate Summary" to compile your logs here.</pre>
+                <pre id="output">Ready to generate Summary.</pre>
             </div>
+            
+            <!-- Warning Message Box -->
+            <div class="warning-box" id="defectPhotoWarning">
+                <span class="warning-icon" id="warningBoxIcon">📸</span>
+                <span id="warningBoxText">Please attach photos of defects to email before sending.</span>
+            </div>
+
             <div class="button-group">
                 <button id="copyBtn" class="action-btn" onclick="copyToClipboard()">Copy Summary</button>
                 <button class="action-btn btn-email" onclick="sendViaEmail()">Send via Email</button>
@@ -699,10 +751,16 @@
         </div>
     </div>
 
+    <!-- Toast/Alert Message System (Replaces browser alert) -->
+    <div id="toast" style="display: none; position: fixed; bottom: 20px; left: 50%; transform: translateX(-50%); background: #0f172a; color: white; padding: 12px 24px; border-radius: 8px; font-size: 0.9rem; font-weight: bold; box-shadow: 0 10px 15px -3px rgba(0,0,0,0.3); z-index: 10000; align-items: center; gap: 8px;">
+        <span id="toastIcon"></span>
+        <span id="toastMessage"></span>
+    </div>
+
     <script>
         let saveTimeout;
         let deferredPrompt;
-        const checkIds = ['engineOil', 'tyreCondition', 'lightsOperation', 'windscreenWipers', 'brakeOperation', 'seatbelts', 'pilotEquipment'];
+        const checkIds = ['bodyPanel', 'engineOil', 'tyreCondition', 'lightsOperation', 'windscreenWipers', 'brakeOperation', 'seatbelts', 'pilotEquipment'];
         let stateValues = {};
 
         if ('serviceWorker' in navigator) {
@@ -806,9 +864,8 @@
                 }
             });
 
-            if (document.getElementById('rego').value || document.getElementById('driver').value) {
-                generateReport();
-            }
+            // Always run baseline check rendering (this dynamically hides the warning box by default on launch)
+            generateReport();
         };
 
         function selectCheck(id, value, shouldSave = true) {
@@ -869,6 +926,23 @@
         }
 
         /**************************************************************
+         * Notification System (No Alert Fallback)
+         **************************************************************/
+        function showToast(message, isError = false) {
+            const toast = document.getElementById('toast');
+            const toastIcon = document.getElementById('toastIcon');
+            const toastMessage = document.getElementById('toastMessage');
+
+            toastMessage.textContent = message;
+            toastIcon.textContent = isError ? '❌' : '✅';
+            
+            toast.style.display = 'flex';
+            setTimeout(() => {
+                toast.style.display = 'none';
+            }, 3000);
+        }
+
+        /**************************************************************
          * Data Formatting and Generation
          **************************************************************/
         function clearForm() {
@@ -886,7 +960,8 @@
                 });
                 
                 saveInputs();
-                document.getElementById('output').textContent = 'Complete the checklist and tap "Generate Summary" to compile your logs here.';
+                document.getElementById('output').textContent = 'Ready to generate Summary.';
+                showToast("Form cleared.");
             }
         }
 
@@ -897,6 +972,7 @@
             saveTimeout = setTimeout(() => { indicator.style.opacity = '0'; }, 1500);
         }
 
+        // Helper to format date field
         function formatDate() {
             const v = document.getElementById('date').value;
             if (!v) return '';
@@ -904,6 +980,7 @@
             return `${parts[2]}/${parts[1]}/${parts[0]}`;
         }
 
+        // Helper to format compliance dates
         function formatCustomDate(id) {
             const v = document.getElementById(id).value;
             if (!v) return '';
@@ -911,6 +988,7 @@
             return `${parts[2]}/${parts[1]}/${parts[0]}`;
         }
 
+        // Output grid alignment layout helper
         function formatLine(col1, col2) {
             const pad1 = 30; 
             const maxRightColumnWidth = 40; 
@@ -955,7 +1033,9 @@
             const wofDueVal = formatCustomDate('wofDue') || '[WOF DUE]';
             const regoDueVal = formatCustomDate('regoDue') || '[REGO DUE]';
             
-            let txt = "GOODWIN PILOTING SERVICES DAILY VEHICLE PRE-START\n\n";
+            // Add Logo Image URL at the top of the report output text
+            let txt = "https://myfriendmoses.github.io/GPS-Jobsheet/gps-logo.png\n\n";
+            txt += "GOODWIN PILOTING SERVICES DAILY VEHICLE PRE-START\n\n";
             
             txt += "INSPECTION DETAILS\n";
             txt += formatLine("DATE OF INSPECTION", dateVal);
@@ -968,6 +1048,7 @@
             txt += formatLine("REGO DUE DATE", regoDueVal) + "\n";
             
             txt += "INSPECTION CHECKLIST\n";
+            txt += formatLine("Body & Panel Condition", stateValues['bodyPanel'] || 'PASS');
             txt += formatLine("Engine Oil & Fluids Level", stateValues['engineOil'] || 'PASS');
             txt += formatLine("Tyre Tread & Pressures", stateValues['tyreCondition'] || 'PASS');
             txt += formatLine("All Lights & Indicators", stateValues['lightsOperation'] || 'PASS');
@@ -997,7 +1078,41 @@
 
             txt += notesResult;
 
+            // Check if active defects exist (Any item is 'FAIL' or manual comment has been keyed in)
+            let hasActiveDefect = false;
+            for (const id of checkIds) {
+                if (stateValues[id] === 'FAIL') {
+                    hasActiveDefect = true;
+                }
+            }
+            const activeDefectText = document.getElementById('defects').value.trim();
+            if (activeDefectText !== "" && activeDefectText.toLowerCase() !== "no defects reported. vehicle fit for service.") {
+                hasActiveDefect = true;
+            }
+
+            // Append notice directly into output text if defects are noted
+            if (hasActiveDefect) {
+                txt += "\n⚠️ REMINDER: Please attach photos of defects to email before sending.\n";
+            }
+
             document.getElementById('output').textContent = txt;
+
+            // Dynamically manage photo warning visibility and styling
+            const warningBox = document.getElementById('defectPhotoWarning');
+            const icon = document.getElementById('warningBoxIcon');
+            const boxText = document.getElementById('warningBoxText');
+            if (warningBox) {
+                if (hasActiveDefect) {
+                    warningBox.style.display = 'flex'; // Make visible when a FAIL/defect is active
+                    warningBox.style.backgroundColor = '#fef2f2';
+                    warningBox.style.borderColor = 'var(--danger)';
+                    warningBox.style.color = '#991b1b';
+                    icon.textContent = '⚠️';
+                    boxText.innerHTML = '<strong>Action Required:</strong> Please attach photos of defects to email before sending.';
+                } else {
+                    warningBox.style.display = 'none'; // Completely hidden when everything is PASS/neutral
+                }
+            }
         }
 
         /**************************************************************
@@ -1019,9 +1134,10 @@
             try {
                 document.execCommand('copy');
                 btn.textContent = "Copied!";
+                showToast("Summary copied to clipboard!");
                 setTimeout(() => { btn.textContent = "Copy Summary"; }, 2000);
             } catch (err) {
-                alert("Copy failed. Please manually select the summary block.");
+                showToast("Copy failed. Please manually select the summary block.", true);
             }
             document.body.removeChild(textArea);
         }
@@ -1036,7 +1152,7 @@
             
             const subject = encodeURIComponent("GPS Vehicle Check - " + rego + " (" + dateStr + ")");
             const body = encodeURIComponent(outputText);
-            window.location.href = `mailto:?subject=${subject}&body=${body}`;
+            window.location.href = `mailto:docs@gpspilots.co.nz?subject=${subject}&body=${body}`;
         }
     </script>
 </body>
