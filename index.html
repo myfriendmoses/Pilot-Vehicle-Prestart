@@ -6,7 +6,7 @@
     <title>GPS - Daily Vehicle Pre-Start</title>
     
     <!-- PWA Web Manifest Configuration -->
-    <link rel="manifest" href="data:application/manifest+json,{%22name%22:%22GPS%20Daily%20Vehicle%20Pre-Start%22,%22short_name%22:%22GPS%20Pre-Start%22,%22start_url%22:%22.%22,%22background_color%22:%22%23f8fafc%22,%22theme_color%22:%22%231e3a8a%22,%22icons%22:[{%22src%22:%22logo.png%22,%22sizes%22:%22512x512%22,%22type%22:%22image/png%22}]}">
+    <link rel="manifest" href="data:application/manifest+json,{%22name%22:%22GPS%20Daily%20Vehicle%20Pre-Start%22,%22short_name%22:%22GPS%20Pre-Start%22,%22start_url%22:%22.%22,%22display%22:%22standalone%22,%22background_color%22:%22%23f8fafc%22,%22theme_color%22:%22%231e3a8a%22,%22icons%22:[{%22src%22:%22logo.png%22,%22sizes%22:%22512x512%22,%22type%22:%22image/png%22}]}">
     
     <!-- App Icons for Mobile Home Screen & Browser Tabs -->
     <link class="apple-touch-icon" rel="apple-touch-icon" href="logo.png">
@@ -438,70 +438,28 @@
             min-width: 0;
         }
 
-        /* Refined Premium Terminal Styling Box */
         .output-wrapper {
-            background: #0b0f19; /* Deep Tech-Dark Background */
-            border: 1px solid #1e293b;
+            background: #ffffff;
+            border: 1.5px solid var(--border);
             border-radius: 12px;
-            overflow: hidden; 
+            overflow-x: auto; 
             flex-grow: 1;
             margin-bottom: 1rem;
-            box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+            padding: 1rem;
+            box-shadow: inset 0 2px 4px rgba(0,0,0,0.02);
+            -webkit-overflow-scrolling: touch;
             width: 100%;
             box-sizing: border-box;
-            display: flex;
-            flex-direction: column;
-        }
-
-        /* macOS Inspired Terminal Window Header */
-        .terminal-header {
-            background: #1e293b;
-            padding: 0.6rem 0.8rem;
-            display: flex;
-            align-items: center;
-            border-bottom: 1px solid #0f172a;
-        }
-
-        .terminal-dots {
-            display: flex;
-            gap: 0.35rem;
-            align-items: center;
-        }
-
-        .terminal-dot {
-            width: 9px;
-            height: 9px;
-            border-radius: 50%;
-            display: inline-block;
-        }
-
-        .dot-red { background: #f87171; }
-        .dot-yellow { background: #fbbf24; }
-        .dot-green { background: #34d399; }
-
-        .terminal-tab-title {
-            color: #94a3b8;
-            font-size: 0.75rem;
-            font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
-            margin-left: 0.75rem;
-            font-weight: 600;
-            letter-spacing: 0.02em;
-        }
-
-        .terminal-body {
-            padding: 1.25rem;
-            overflow-x: auto;
-            -webkit-overflow-scrolling: touch;
         }
 
         pre {
             background: transparent;
-            color: #34d399; /* Futuristic High-Contrast Mint Terminal Font Color */
+            color: #000000;
             padding: 0;
             margin: 0;
-            font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Courier New", Courier, monospace;
+            font-family: "Courier New", Courier, monospace;
             font-size: 0.85rem;
-            line-height: 1.45;
+            line-height: 1.35;
             white-space: pre; 
         }
 
@@ -777,17 +735,7 @@
         <!-- Output Display -->
         <div class="output-section">
             <div class="output-wrapper" id="outputWrapper">
-                <div class="terminal-header">
-                    <div class="terminal-dots">
-                        <span class="terminal-dot dot-red"></span>
-                        <span class="terminal-dot dot-yellow"></span>
-                        <span class="terminal-dot dot-green"></span>
-                    </div>
-                    <span class="terminal-tab-title">prestart_summary.txt</span>
-                </div>
-                <div class="terminal-body">
-                    <pre id="output">Ready to generate Summary.</pre>
-                </div>
+                <pre id="output">Ready to generate Summary.</pre>
             </div>
             
             <!-- Warning Message Box -->
@@ -802,9 +750,6 @@
             </div>
         </div>
     </div>
-
-    <!-- Hidden visual clipboard renderer container -->
-    <div id="richClipboardSource" style="position: absolute; left: -9999px; top: -9999px; opacity: 0; pointer-events: none; user-select: all;"></div>
 
     <!-- Toast/Alert Message System (Replaces browser alert) -->
     <div id="toast" style="display: none; position: fixed; bottom: 20px; left: 50%; transform: translateX(-50%); background: #0f172a; color: white; padding: 12px 24px; border-radius: 8px; font-size: 0.9rem; font-weight: bold; box-shadow: 0 10px 15px -3px rgba(0,0,0,0.3); z-index: 10000; align-items: center; gap: 8px;">
@@ -1077,87 +1022,6 @@
             return output;
         }
 
-        /**************************************************************
-         * Rich HTML Clipboard Layout Generator
-         **************************************************************/
-        function generateRichHtmlReport() {
-            const regoVal = (document.getElementById('rego').value || '[REGO]').toUpperCase();
-            const dateVal = formatDate() || '[DATE]';
-            const driverVal = document.getElementById('driver').value || '[DRIVER]';
-            const odometerVal = document.getElementById('odometer').value ? document.getElementById('odometer').value + " KM" : '[ODOMETER READING]';
-            
-            const serviceDueVal = document.getElementById('serviceDue').value ? document.getElementById('serviceDue').value + " KM" : '[SERVICE DUE]';
-            const rucDueVal = document.getElementById('rucDue').value ? document.getElementById('rucDue').value + " KM" : '[RUC DUE]';
-            const wofDueVal = formatCustomDate('wofDue') || '[WOF DUE]';
-            const regoDueVal = formatCustomDate('regoDue') || '[REGO DUE]';
-
-            let hasActiveDefect = false;
-            for (const id of checkIds) {
-                if (stateValues[id] === 'FAIL') {
-                    hasActiveDefect = true;
-                }
-            }
-            const activeDefectText = document.getElementById('defects').value.trim();
-            if (activeDefectText !== "" && activeDefectText.toLowerCase() !== "no defects reported. vehicle fit for service.") {
-                hasActiveDefect = true;
-            }
-
-            let html = `<div style="font-family: Arial, sans-serif; font-size: 14px; color: #0f172a; max-width: 600px; line-height: 1.5; padding: 10px;">`;
-            
-            // Goodwin Piloting Services Remote Renderable Image Logo Header
-            html += `<div style="margin-bottom: 15px;"><img src="https://myfriendmoses.github.io/GPS-Jobsheet/gps-logo.png" alt="GPS Logo" width="80" height="80" style="border-radius: 12px; display: block; object-fit: contain;" /></div>`;
-            html += `<h2 style="font-size: 16px; color: #1e3a8a; margin: 0 0 15px 0; text-transform: uppercase; font-weight: 800; border-bottom: 2px solid #e2e8f0; padding-bottom: 5px; letter-spacing: 0.03em;">Goodwin Piloting Services Daily Vehicle Pre-Start</h2>`;
-            
-            html += `<h3 style="font-size: 13px; color: #1e3a8a; text-transform: uppercase; margin: 15px 0 5px 0; border-bottom: 1px solid #cbd5e1; padding-bottom: 3px; letter-spacing: 0.02em;">Inspection Details</h3>`;
-            html += `<table style="width: 100%; border-collapse: collapse; font-size: 13px; margin-bottom: 15px;">`;
-            html += `<tr><td style="padding: 4px 0; font-weight: bold; width: 220px; color: #475569;">DATE OF INSPECTION</td><td style="padding: 4px 0; color: #000000;">${dateVal}</td></tr>`;
-            html += `<tr><td style="padding: 4px 0; font-weight: bold; color: #475569;">VEHICLE REGO</td><td style="padding: 4px 0; color: #000000;">${regoVal}</td></tr>`;
-            html += `<tr><td style="padding: 4px 0; font-weight: bold; color: #475569;">DRIVER / INSPECTOR</td><td style="padding: 4px 0; color: #000000;">${driverVal}</td></tr>`;
-            html += `<tr><td style="padding: 4px 0; font-weight: bold; color: #475569;">CURRENT ODOMETER</td><td style="padding: 4px 0; color: #000000;">${odometerVal}</td></tr>`;
-            html += `<tr><td style="padding: 4px 0; font-weight: bold; color: #475569;">SERVICE DUE (KM)</td><td style="padding: 4px 0; color: #000000;">${serviceDueVal}</td></tr>`;
-            html += `<tr><td style="padding: 4px 0; font-weight: bold; color: #475569;">RUC DUE (KM)</td><td style="padding: 4px 0; color: #000000;">${rucDueVal}</td></tr>`;
-            html += `<tr><td style="padding: 4px 0; font-weight: bold; color: #475569;">WOF DUE DATE</td><td style="padding: 4px 0; color: #000000;">${wofDueVal}</td></tr>`;
-            html += `<tr><td style="padding: 4px 0; font-weight: bold; color: #475569;">REGO DUE DATE</td><td style="padding: 4px 0; color: #000000;">${regoDueVal}</td></tr>`;
-            html += `</table>`;
-
-            html += `<h3 style="font-size: 13px; color: #1e3a8a; text-transform: uppercase; margin: 15px 0 5px 0; border-bottom: 1px solid #cbd5e1; padding-bottom: 3px; letter-spacing: 0.02em;">Inspection Checklist</h3>`;
-            html += `<table style="width: 100%; border-collapse: collapse; font-size: 13px; margin-bottom: 15px;">`;
-            const formatRow = (label, val) => {
-                let badgeBg = '#dcfce7';
-                let badgeColor = '#15803d';
-                if (val === 'FAIL') {
-                    badgeBg = '#fee2e2';
-                    badgeColor = '#b91c1c';
-                } else if (val === 'N/A') {
-                    badgeBg = '#f1f5f9';
-                    badgeColor = '#475569';
-                }
-                return `<tr><td style="padding: 5px 0; color: #475569; font-weight: bold; width: 220px; border-bottom: 1px solid #f1f5f9;">${label}</td><td style="padding: 5px 0; border-bottom: 1px solid #f1f5f9;"><span style="background-color: ${badgeBg}; color: ${badgeColor}; padding: 2px 8px; border-radius: 4px; font-weight: bold; font-size: 11px; text-transform: uppercase;">${val}</span></td></tr>`;
-            };
-            html += formatRow("Body & Panel Condition", stateValues['bodyPanel'] || 'PASS');
-            html += formatRow("Engine Oil & Fluids Level", stateValues['engineOil'] || 'PASS');
-            html += formatRow("Tyre Tread & Pressures", stateValues['tyreCondition'] || 'PASS');
-            html += formatRow("All Lights & Indicators", stateValues['lightsOperation'] || 'PASS');
-            html += formatRow("Windscreen, Wipers & Washers", stateValues['windscreenWipers'] || 'PASS');
-            html += formatRow("Brakes & Handbrake Operation", stateValues['brakeOperation'] || 'PASS');
-            html += formatRow("Seatbelts & Cabin Safety Gear", stateValues['seatbelts'] || 'PASS');
-            html += formatRow("Pilot Lights & Signs", stateValues['pilotEquipment'] || 'PASS');
-            html += `</table>`;
-
-            html += `<h3 style="font-size: 13px; color: #1e3a8a; text-transform: uppercase; margin: 15px 0 5px 0; border-bottom: 1px solid #cbd5e1; padding-bottom: 3px; letter-spacing: 0.02em;">Defects & Repairs Required</h3>`;
-            const defectsText = (document.getElementById('defects').value || "No defects reported. Vehicle fit for service.").trim();
-            html += `<div style="font-size: 13px; background: #f8fafc; border: 1px solid #e2e8f0; padding: 12px; border-radius: 6px; white-space: pre-wrap; color: #0f172a; font-family: inherit;">${defectsText}</div>`;
-
-            if (hasActiveDefect) {
-                html += `<div style="margin-top: 15px; background: #fef2f2; border: 1px solid #fca5a5; padding: 12px; border-radius: 6px; font-weight: bold; color: #991b1b; font-size: 12px; line-height: 1.4;">`;
-                html += `⚠️ REMINDER: Please attach photos of defects to email before sending.`;
-                html += `</div>`;
-            }
-
-            html += `</div>`;
-            return html;
-        }
-
         function generateReport() {
             const regoVal = (document.getElementById('rego').value || '[REGO]').toUpperCase();
             const dateVal = formatDate() || '[DATE]';
@@ -1169,7 +1033,6 @@
             const wofDueVal = formatCustomDate('wofDue') || '[WOF DUE]';
             const regoDueVal = formatCustomDate('regoDue') || '[REGO DUE]';
             
-            // Cleaned summary output
             let txt = "GOODWIN PILOTING SERVICES DAILY VEHICLE PRE-START\n\n";
             
             txt += "INSPECTION DETAILS\n";
@@ -1251,96 +1114,43 @@
         }
 
         /**************************************************************
-         * Unified Rich Clipboard Generation Helper
-         **************************************************************/
-        function copyRichReportToClipboard() {
-            const richContainer = document.getElementById('richClipboardSource');
-            
-            // Populate our invisible container with clean Visual styled email tables & logo
-            richContainer.innerHTML = generateRichHtmlReport();
-            
-            const range = document.createRange();
-            range.selectNodeContents(richContainer);
-            const selection = window.getSelection();
-            selection.removeAllRanges();
-            selection.addRange(range);
-            
-            let successful = false;
-            try {
-                // Generates HTML MIME type alongside plaintext on System Clipboard
-                successful = document.execCommand('copy');
-            } catch (err) {
-                // High safety plaintext textarea fallback
-                const outputText = document.getElementById('output').textContent;
-                const textArea = document.createElement("textarea");
-                textArea.value = outputText;
-                textArea.style.position = "fixed";
-                textArea.style.top = "0";
-                textArea.style.left = "0";
-                document.body.appendChild(textArea);
-                textArea.focus();
-                textArea.select();
-                try {
-                    document.execCommand('copy');
-                    successful = true;
-                } catch (fallbackErr) {}
-                document.body.removeChild(textArea);
-            }
-            selection.removeAllRanges();
-            return successful;
-        }
-
-        /**************************************************************
-         * Action Triggers (Clipboard copy button)
+         * Action Triggers (Clipboard and Email Client)
          **************************************************************/
         function copyToClipboard() {
+            const outputText = document.getElementById('output').textContent;
             const btn = document.getElementById('copyBtn');
-            const successful = copyRichReportToClipboard();
-            if (successful) {
+            const textArea = document.createElement("textarea");
+            
+            textArea.value = outputText;
+            textArea.style.position = "fixed";
+            textArea.style.top = "0";
+            textArea.style.left = "0";
+            document.body.appendChild(textArea);
+            textArea.focus();
+            textArea.select();
+            
+            try {
+                document.execCommand('copy');
                 btn.textContent = "Copied!";
-                showToast("Summary copied! Paste in email to render Logo.");
+                showToast("Summary copied to clipboard!");
                 setTimeout(() => { btn.textContent = "Copy Summary"; }, 2000);
-            } else {
-                showToast("Copy failed. Please manually select summary block.", true);
+            } catch (err) {
+                showToast("Copy failed. Please manually select the summary block.", true);
             }
+            document.body.removeChild(textArea);
         }
 
         /**************************************************************
-         * Action Triggers (Email Sender using Web Share API Option 2)
+         * Action Triggers (Clipboard and Email Client)
          **************************************************************/
-        async function sendViaEmail() {
+        function sendViaEmail() {
             const rego = (document.getElementById('rego').value || 'Vehicle').toUpperCase();
             const dateStr = formatDate();
             const outputText = document.getElementById('output').textContent;
-            const subject = "GPS Vehicle Check - " + rego + " (" + dateStr + ")";
             
-            // Attempt to trigger the native device's share sheet (Option 2)
-            if (navigator.share) {
-                try {
-                    await navigator.share({
-                        title: subject,
-                        text: outputText
-                    });
-                    showToast("Native Share sheet opened!");
-                } catch (err) {
-                    // If the user cancelled or the share was interrupted, do not lock them out, run the fallback instead
-                    if (err.name !== 'AbortError') {
-                        fallbackMailto(rego, dateStr, outputText);
-                    }
-                }
-            } else {
-                // If Web Share is not supported (Desktop/Fallback), invoke standard mailto handler
-                fallbackMailto(rego, dateStr, outputText);
-            }
-        }
-
-        /**************************************************************
-         * Mailto Fallback Action Handler
-         **************************************************************/
-        function fallbackMailto(rego, dateStr, outputText) {
             const subject = encodeURIComponent("GPS Vehicle Check - " + rego + " (" + dateStr + ")");
             const body = encodeURIComponent(outputText);
-            window.location.href = `mailto:docs@gpspilots.co.nz?subject=${subject}&body=${body}`;
+            window.location.href = `mailto:?subject=${subject}&body=${body}`;
         }
     </script>
 </body>
