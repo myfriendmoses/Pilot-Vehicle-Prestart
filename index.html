@@ -751,6 +751,9 @@
         </div>
     </div>
 
+    <!-- Hidden visual clipboard renderer container -->
+    <div id="richClipboardSource" style="position: absolute; left: -9999px; top: -9999px; opacity: 0; pointer-events: none; user-select: all;"></div>
+
     <!-- Toast/Alert Message System (Replaces browser alert) -->
     <div id="toast" style="display: none; position: fixed; bottom: 20px; left: 50%; transform: translateX(-50%); background: #0f172a; color: white; padding: 12px 24px; border-radius: 8px; font-size: 0.9rem; font-weight: bold; box-shadow: 0 10px 15px -3px rgba(0,0,0,0.3); z-index: 10000; align-items: center; gap: 8px;">
         <span id="toastIcon"></span>
@@ -1022,6 +1025,87 @@
             return output;
         }
 
+        /**************************************************************
+         * Rich HTML Clipboard Layout Generator
+         **************************************************************/
+        function generateRichHtmlReport() {
+            const regoVal = (document.getElementById('rego').value || '[REGO]').toUpperCase();
+            const dateVal = formatDate() || '[DATE]';
+            const driverVal = document.getElementById('driver').value || '[DRIVER]';
+            const odometerVal = document.getElementById('odometer').value ? document.getElementById('odometer').value + " KM" : '[ODOMETER READING]';
+            
+            const serviceDueVal = document.getElementById('serviceDue').value ? document.getElementById('serviceDue').value + " KM" : '[SERVICE DUE]';
+            const rucDueVal = document.getElementById('rucDue').value ? document.getElementById('rucDue').value + " KM" : '[RUC DUE]';
+            const wofDueVal = formatCustomDate('wofDue') || '[WOF DUE]';
+            const regoDueVal = formatCustomDate('regoDue') || '[REGO DUE]';
+
+            let hasActiveDefect = false;
+            for (const id of checkIds) {
+                if (stateValues[id] === 'FAIL') {
+                    hasActiveDefect = true;
+                }
+            }
+            const activeDefectText = document.getElementById('defects').value.trim();
+            if (activeDefectText !== "" && activeDefectText.toLowerCase() !== "no defects reported. vehicle fit for service.") {
+                hasActiveDefect = true;
+            }
+
+            let html = `<div style="font-family: Arial, sans-serif; font-size: 14px; color: #0f172a; max-width: 600px; line-height: 1.5; padding: 10px;">`;
+            
+            // Goodwin Piloting Services Remote Renderable Image Logo Header
+            html += `<div style="margin-bottom: 15px;"><img src="https://myfriendmoses.github.io/GPS-Jobsheet/gps-logo.png" alt="GPS Logo" width="80" height="80" style="border-radius: 12px; display: block; object-fit: contain;" /></div>`;
+            html += `<h2 style="font-size: 16px; color: #1e3a8a; margin: 0 0 15px 0; text-transform: uppercase; font-weight: 800; border-bottom: 2px solid #e2e8f0; padding-bottom: 5px; letter-spacing: 0.03em;">Goodwin Piloting Services Daily Vehicle Pre-Start</h2>`;
+            
+            html += `<h3 style="font-size: 13px; color: #1e3a8a; text-transform: uppercase; margin: 15px 0 5px 0; border-bottom: 1px solid #cbd5e1; padding-bottom: 3px; letter-spacing: 0.02em;">Inspection Details</h3>`;
+            html += `<table style="width: 100%; border-collapse: collapse; font-size: 13px; margin-bottom: 15px;">`;
+            html += `<tr><td style="padding: 4px 0; font-weight: bold; width: 220px; color: #475569;">DATE OF INSPECTION</td><td style="padding: 4px 0; color: #000000;">${dateVal}</td></tr>`;
+            html += `<tr><td style="padding: 4px 0; font-weight: bold; color: #475569;">VEHICLE REGO</td><td style="padding: 4px 0; color: #000000;">${regoVal}</td></tr>`;
+            html += `<tr><td style="padding: 4px 0; font-weight: bold; color: #475569;">DRIVER / INSPECTOR</td><td style="padding: 4px 0; color: #000000;">${driverVal}</td></tr>`;
+            html += `<tr><td style="padding: 4px 0; font-weight: bold; color: #475569;">CURRENT ODOMETER</td><td style="padding: 4px 0; color: #000000;">${odometerVal}</td></tr>`;
+            html += `<tr><td style="padding: 4px 0; font-weight: bold; color: #475569;">SERVICE DUE (KM)</td><td style="padding: 4px 0; color: #000000;">${serviceDueVal}</td></tr>`;
+            html += `<tr><td style="padding: 4px 0; font-weight: bold; color: #475569;">RUC DUE (KM)</td><td style="padding: 4px 0; color: #000000;">${rucDueVal}</td></tr>`;
+            html += `<tr><td style="padding: 4px 0; font-weight: bold; color: #475569;">WOF DUE DATE</td><td style="padding: 4px 0; color: #000000;">${wofDueVal}</td></tr>`;
+            html += `<tr><td style="padding: 4px 0; font-weight: bold; color: #475569;">REGO DUE DATE</td><td style="padding: 4px 0; color: #000000;">${regoDueVal}</td></tr>`;
+            html += `</table>`;
+
+            html += `<h3 style="font-size: 13px; color: #1e3a8a; text-transform: uppercase; margin: 15px 0 5px 0; border-bottom: 1px solid #cbd5e1; padding-bottom: 3px; letter-spacing: 0.02em;">Inspection Checklist</h3>`;
+            html += `<table style="width: 100%; border-collapse: collapse; font-size: 13px; margin-bottom: 15px;">`;
+            const formatRow = (label, val) => {
+                let badgeBg = '#dcfce7';
+                let badgeColor = '#15803d';
+                if (val === 'FAIL') {
+                    badgeBg = '#fee2e2';
+                    badgeColor = '#b91c1c';
+                } else if (val === 'N/A') {
+                    badgeBg = '#f1f5f9';
+                    badgeColor = '#475569';
+                }
+                return `<tr><td style="padding: 5px 0; color: #475569; font-weight: bold; width: 220px; border-bottom: 1px solid #f1f5f9;">${label}</td><td style="padding: 5px 0; border-bottom: 1px solid #f1f5f9;"><span style="background-color: ${badgeBg}; color: ${badgeColor}; padding: 2px 8px; border-radius: 4px; font-weight: bold; font-size: 11px; text-transform: uppercase;">${val}</span></td></tr>`;
+            };
+            html += formatRow("Body & Panel Condition", stateValues['bodyPanel'] || 'PASS');
+            html += formatRow("Engine Oil & Fluids Level", stateValues['engineOil'] || 'PASS');
+            html += formatRow("Tyre Tread & Pressures", stateValues['tyreCondition'] || 'PASS');
+            html += formatRow("All Lights & Indicators", stateValues['lightsOperation'] || 'PASS');
+            html += formatRow("Windscreen, Wipers & Washers", stateValues['windscreenWipers'] || 'PASS');
+            html += formatRow("Brakes & Handbrake Operation", stateValues['brakeOperation'] || 'PASS');
+            html += formatRow("Seatbelts & Cabin Safety Gear", stateValues['seatbelts'] || 'PASS');
+            html += formatRow("Pilot Lights & Signs", stateValues['pilotEquipment'] || 'PASS');
+            html += `</table>`;
+
+            html += `<h3 style="font-size: 13px; color: #1e3a8a; text-transform: uppercase; margin: 15px 0 5px 0; border-bottom: 1px solid #cbd5e1; padding-bottom: 3px; letter-spacing: 0.02em;">Defects & Repairs Required</h3>`;
+            const defectsText = (document.getElementById('defects').value || "No defects reported. Vehicle fit for service.").trim();
+            html += `<div style="font-size: 13px; background: #f8fafc; border: 1px solid #e2e8f0; padding: 12px; border-radius: 6px; white-space: pre-wrap; color: #0f172a; font-family: inherit;">${defectsText}</div>`;
+
+            if (hasActiveDefect) {
+                html += `<div style="margin-top: 15px; background: #fef2f2; border: 1px solid #fca5a5; padding: 12px; border-radius: 6px; font-weight: bold; color: #991b1b; font-size: 12px; line-height: 1.4;">`;
+                html += `⚠️ REMINDER: Please attach photos of defects to email before sending.`;
+                html += `</div>`;
+            }
+
+            html += `</div>`;
+            return html;
+        }
+
         function generateReport() {
             const regoVal = (document.getElementById('rego').value || '[REGO]').toUpperCase();
             const dateVal = formatDate() || '[DATE]';
@@ -1117,29 +1201,55 @@
 
         /**************************************************************
          * Action Triggers (Clipboard and Email Client)
+         * Upgraded to write visual rich text (with logo) onto clipboard
          **************************************************************/
         function copyToClipboard() {
-            const outputText = document.getElementById('output').textContent;
             const btn = document.getElementById('copyBtn');
-            const textArea = document.createElement("textarea");
+            const richContainer = document.getElementById('richClipboardSource');
             
-            textArea.value = outputText;
-            textArea.style.position = "fixed";
-            textArea.style.top = "0";
-            textArea.style.left = "0";
-            document.body.appendChild(textArea);
-            textArea.focus();
-            textArea.select();
+            // Build visual rich text content inside hidden clipboard element
+            richContainer.innerHTML = generateRichHtmlReport();
+            
+            // Focus and Select hidden content
+            const range = document.createRange();
+            range.selectNodeContents(richContainer);
+            const selection = window.getSelection();
+            selection.removeAllRanges();
+            selection.addRange(range);
             
             try {
-                document.execCommand('copy');
-                btn.textContent = "Copied!";
-                showToast("Summary copied to clipboard!");
-                setTimeout(() => { btn.textContent = "Copy Summary"; }, 2000);
+                // Execute copy (copies BOTH formatted visual HTML and plain fallback)
+                const successful = document.execCommand('copy');
+                if (successful) {
+                    btn.textContent = "Copied!";
+                    showToast("Summary copied! Paste in email to render Logo.");
+                } else {
+                    throw new Error("Selection copy execution failed");
+                }
             } catch (err) {
-                showToast("Copy failed. Please manually select the summary block.", true);
+                // Safe plain text fallback block
+                const outputText = document.getElementById('output').textContent;
+                const textArea = document.createElement("textarea");
+                textArea.value = outputText;
+                textArea.style.position = "fixed";
+                textArea.style.top = "0";
+                textArea.style.left = "0";
+                document.body.appendChild(textArea);
+                textArea.focus();
+                textArea.select();
+                try {
+                    document.execCommand('copy');
+                    btn.textContent = "Copied Plain Text!";
+                    showToast("Summary copied as plain text.");
+                } catch (fallbackErr) {
+                    showToast("Copy failed. Please manually select summary block.", true);
+                }
+                document.body.removeChild(textArea);
             }
-            document.body.removeChild(textArea);
+            
+            // Release selection to avoid user disturbance
+            selection.removeAllRanges();
+            setTimeout(() => { btn.textContent = "Copy Summary"; }, 2000);
         }
 
         /**************************************************************
