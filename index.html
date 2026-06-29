@@ -6,7 +6,7 @@
     <title>GPS - Daily Vehicle Pre-Start</title>
     
     <!-- PWA Web Manifest Configuration -->
-    <link rel="manifest" href="data:application/manifest+json,{%22name%22:%22GPS%20Daily%20Vehicle%20Pre-Start%22,%22short_name%22:%22GPS%20Pre-Start%22,%22start_url%22:%22.%22,%22display%22:%22standalone%22,%22background_color%22:%22%23f8fafc%22,%22theme_color%22:%22%231e3a8a%22,%22icons%22:[{%22src%22:%22logo.png%22,%22sizes%22:%22512x512%22,%22type%22:%22image/png%22}]}">
+    <link rel="manifest" href="data:application/manifest+json,{%22name%22:%22GPS%20Daily%20Vehicle%20Pre-Start%22,%22short_name%22:%22GPS%20Pre-Start%22,%22start_url%22:%22.%22,%22background_color%22:%22%23f8fafc%22,%22theme_color%22:%22%231e3a8a%22,%22icons%22:[{%22src%22:%22logo.png%22,%22sizes%22:%22512x512%22,%22type%22:%22image/png%22}]}">
     
     <!-- App Icons for Mobile Home Screen & Browser Tabs -->
     <link class="apple-touch-icon" rel="apple-touch-icon" href="logo.png">
@@ -1169,7 +1169,7 @@
             const wofDueVal = formatCustomDate('wofDue') || '[WOF DUE]';
             const regoDueVal = formatCustomDate('regoDue') || '[REGO DUE]';
             
-            // Cleaned summary: Removed raw image link at the top as requested
+            // Cleaned summary output
             let txt = "GOODWIN PILOTING SERVICES DAILY VEHICLE PRE-START\n\n";
             
             txt += "INSPECTION DETAILS\n";
@@ -1251,34 +1251,26 @@
         }
 
         /**************************************************************
-         * Action Triggers (Clipboard and Email Client)
-         * Upgraded to write visual rich text (with logo) onto clipboard
+         * Unified Rich Clipboard Generation Helper
          **************************************************************/
-        function copyToClipboard() {
-            const btn = document.getElementById('copyBtn');
+        function copyRichReportToClipboard() {
             const richContainer = document.getElementById('richClipboardSource');
             
-            // Build visual rich text content inside hidden clipboard element
+            // Populate our invisible container with clean Visual styled email tables & logo
             richContainer.innerHTML = generateRichHtmlReport();
             
-            // Focus and Select hidden content
             const range = document.createRange();
             range.selectNodeContents(richContainer);
             const selection = window.getSelection();
             selection.removeAllRanges();
             selection.addRange(range);
             
+            let successful = false;
             try {
-                // Execute copy (copies BOTH formatted visual HTML and plain fallback)
-                const successful = document.execCommand('copy');
-                if (successful) {
-                    btn.textContent = "Copied!";
-                    showToast("Summary copied! Paste in email to render Logo.");
-                } else {
-                    throw new Error("Selection copy execution failed");
-                }
+                // Generates HTML MIME type alongside plaintext on System Clipboard
+                successful = document.execCommand('copy');
             } catch (err) {
-                // Safe plain text fallback block
+                // High safety plaintext textarea fallback
                 const outputText = document.getElementById('output').textContent;
                 const textArea = document.createElement("textarea");
                 textArea.value = outputText;
@@ -1290,27 +1282,62 @@
                 textArea.select();
                 try {
                     document.execCommand('copy');
-                    btn.textContent = "Copied Plain Text!";
-                    showToast("Summary copied as plain text.");
-                } catch (fallbackErr) {
-                    showToast("Copy failed. Please manually select summary block.", true);
-                }
+                    successful = true;
+                } catch (fallbackErr) {}
                 document.body.removeChild(textArea);
             }
-            
-            // Release selection to avoid user disturbance
             selection.removeAllRanges();
-            setTimeout(() => { btn.textContent = "Copy Summary"; }, 2000);
+            return successful;
         }
 
         /**************************************************************
-         * Action Triggers (Clipboard and Email Client)
+         * Action Triggers (Clipboard copy button)
          **************************************************************/
-        function sendViaEmail() {
+        function copyToClipboard() {
+            const btn = document.getElementById('copyBtn');
+            const successful = copyRichReportToClipboard();
+            if (successful) {
+                btn.textContent = "Copied!";
+                showToast("Summary copied! Paste in email to render Logo.");
+                setTimeout(() => { btn.textContent = "Copy Summary"; }, 2000);
+            } else {
+                showToast("Copy failed. Please manually select summary block.", true);
+            }
+        }
+
+        /**************************************************************
+         * Action Triggers (Email Sender using Web Share API Option 2)
+         **************************************************************/
+        async function sendViaEmail() {
             const rego = (document.getElementById('rego').value || 'Vehicle').toUpperCase();
             const dateStr = formatDate();
             const outputText = document.getElementById('output').textContent;
+            const subject = "GPS Vehicle Check - " + rego + " (" + dateStr + ")";
             
+            // Attempt to trigger the native device's share sheet (Option 2)
+            if (navigator.share) {
+                try {
+                    await navigator.share({
+                        title: subject,
+                        text: outputText
+                    });
+                    showToast("Native Share sheet opened!");
+                } catch (err) {
+                    // If the user cancelled or the share was interrupted, do not lock them out, run the fallback instead
+                    if (err.name !== 'AbortError') {
+                        fallbackMailto(rego, dateStr, outputText);
+                    }
+                }
+            } else {
+                // If Web Share is not supported (Desktop/Fallback), invoke standard mailto handler
+                fallbackMailto(rego, dateStr, outputText);
+            }
+        }
+
+        /**************************************************************
+         * Mailto Fallback Action Handler
+         **************************************************************/
+        function fallbackMailto(rego, dateStr, outputText) {
             const subject = encodeURIComponent("GPS Vehicle Check - " + rego + " (" + dateStr + ")");
             const body = encodeURIComponent(outputText);
             window.location.href = `mailto:docs@gpspilots.co.nz?subject=${subject}&body=${body}`;
