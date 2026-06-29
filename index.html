@@ -1127,6 +1127,19 @@
             return `${diffDays} Day${diffDays > 1 ? 's' : ''}`;
         }
 
+        // Helper to calculate raw remaining days (numeric value for conditions)
+        function getDaysRemainingValue(targetId) {
+            const targetValue = document.getElementById(targetId).value;
+            const inspectDateValue = document.getElementById('date').value;
+            if (!targetValue || !inspectDateValue) return null;
+            
+            const targetDate = new Date(targetValue + 'T00:00:00');
+            const inspectDate = new Date(inspectDateValue + 'T00:00:00');
+            
+            const diffTime = targetDate - inspectDate;
+            return Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+        }
+
         // Helper to calculate remaining KMs until a target compliance mark
         function getKmRemaining(targetId) {
             const targetValue = parseInt(document.getElementById(targetId).value, 10);
@@ -1138,6 +1151,15 @@
                 return "DUE NOW";
             }
             return `${diff} KM`;
+        }
+
+        // Helper to calculate raw remaining KMs (numeric value for conditions)
+        function getKmRemainingValue(targetId) {
+            const targetValue = parseInt(document.getElementById(targetId).value, 10);
+            const odomValue = parseInt(document.getElementById('odometer').value, 10);
+            if (isNaN(targetValue) || isNaN(odomValue)) return null;
+            
+            return targetValue - odomValue;
         }
 
         // Consolidated check logic to determine if active defects or FAIL checklist items exist
@@ -1153,6 +1175,61 @@
                 hasActiveDefect = true;
             }
             return hasActiveDefect;
+        }
+
+        // Helper to build list of compliance warning alerts (rego etc 14 days or 1000km before due)
+        function getComplianceAlerts() {
+            const alerts = [];
+            
+            // WOF alert check (14 Days limit)
+            const wofDays = getDaysRemainingValue('wofDue');
+            if (wofDays !== null && wofDays <= 14) {
+                if (wofDays <= 0) {
+                    alerts.push("WOF DUE NOW");
+                } else {
+                    alerts.push(`WOF DUE in ${wofDays} DAY${wofDays > 1 ? 'S' : ''}`);
+                }
+            }
+            
+            // REGO alert check (14 Days limit)
+            const regoDays = getDaysRemainingValue('regoDue');
+            if (regoDays !== null && regoDays <= 14) {
+                if (regoDays <= 0) {
+                    alerts.push("REGO DUE NOW");
+                } else {
+                    alerts.push(`REGO DUE in ${regoDays} DAY${regoDays > 1 ? 'S' : ''}`);
+                }
+            }
+            
+            // RUC alert check (1000 KM limit)
+            const rucKm = getKmRemainingValue('rucDue');
+            if (rucKm !== null && rucKm <= 1000) {
+                if (rucKm <= 0) {
+                    alerts.push("RUC DUE NOW");
+                } else {
+                    alerts.push(`RUC DUE in ${rucKm} KM`);
+                }
+            }
+            
+            // Service alert check (1000 KM limit)
+            const serviceKm = getKmRemainingValue('serviceDue');
+            if (serviceKm !== null && serviceKm <= 1000) {
+                if (serviceKm <= 0) {
+                    alerts.push("SERVICE DUE NOW");
+                } else {
+                    alerts.push(`SERVICE DUE in ${serviceKm} KM`);
+                }
+            }
+            
+            return alerts;
+        }
+
+        // Helper to format check items with emoji tick or cross
+        function getEmojiStatus(val) {
+            const status = val || 'PASS';
+            if (status === 'PASS') return '✅ PASS';
+            if (status === 'FAIL') return '❌ FAIL';
+            return '➖ N/A';
         }
 
         // Output grid alignment layout helper
@@ -1243,14 +1320,14 @@
             txt += formatLine("REGO DUE DATE", regoDueVal) + "\n";
             
             txt += "INSPECTION CHECKLIST\n";
-            txt += formatLine("Body & Panel Condition", stateValues['bodyPanel'] || 'PASS');
-            txt += formatLine("Engine Oil & Fluids Level", stateValues['engineOil'] || 'PASS');
-            txt += formatLine("Tyre Tread & Pressures", stateValues['tyreCondition'] || 'PASS');
-            txt += formatLine("All Lights & Indicators", stateValues['lightsOperation'] || 'PASS');
-            txt += formatLine("Windscreen, Wipers & Washers", stateValues['windscreenWipers'] || 'PASS');
-            txt += formatLine("Brakes & Handbrake Operation", stateValues['brakeOperation'] || 'PASS');
-            txt += formatLine("Seatbelts & Cabin Safety Gear", stateValues['seatbelts'] || 'PASS');
-            txt += formatLine("Pilot Lights & Signs", stateValues['pilotEquipment'] || 'PASS') + "\n";
+            txt += formatLine("BODY & PANEL", getEmojiStatus(stateValues['bodyPanel']));
+            txt += formatLine("OIL & FLUIDS", getEmojiStatus(stateValues['engineOil']));
+            txt += formatLine("TREAD & PRESSURE", getEmojiStatus(stateValues['tyreCondition']));
+            txt += formatLine("LIGHTS & INDICATORS", getEmojiStatus(stateValues['lightsOperation']));
+            txt += formatLine("GLASS & WIPERS", getEmojiStatus(stateValues['windscreenWipers']));
+            txt += formatLine("BRAKES", getEmojiStatus(stateValues['brakeOperation']));
+            txt += formatLine("CABIN & SEATBELTS", getEmojiStatus(stateValues['seatbelts']));
+            txt += formatLine("PILOT GEAR", getEmojiStatus(stateValues['pilotEquipment'])) + "\n";
             
             txt += "DEFECTS & REPAIRS REQUIRED\n";
             const defectsText = (document.getElementById('defects').value || "No defects reported. Vehicle fit for service.").trim();
@@ -1322,14 +1399,28 @@
         }
 
         function sendViaEmail() {
-            const rego = (document.getElementById('rego').value || 'Vehicle').toUpperCase();
-            const dateStr = formatDate();
+            const rego = (document.getElementById('rego').value || '[REGO]').toUpperCase();
+            const dateStr = formatDate() || '[DATE]';
             const outputText = buildReportText();
             const hasFail = checkForDefects();
             
             const recipient = "docs@gpspilots.co.nz";
-            const subjectPrefix = hasFail ? "!ATTENTION! " : "";
-            const subject = encodeURIComponent(subjectPrefix + "GPS Vehicle Check - " + rego + " (" + dateStr + ")");
+            
+            // Build the standard subject line
+            let subjectText = "";
+            if (hasFail) {
+                subjectText = `!ATTENTION REQUIRED! — PRE-START — ${rego} — ${dateStr}`;
+            } else {
+                subjectText = `PRE-START — ${rego} — ${dateStr}`;
+            }
+            
+            // Append compliance alert details if items are due or approaching limits
+            const alerts = getComplianceAlerts();
+            if (alerts.length > 0) {
+                subjectText += " — " + alerts.join(" — ");
+            }
+            
+            const subject = encodeURIComponent(subjectText);
             const body = encodeURIComponent(outputText);
             window.location.href = `mailto:${recipient}?subject=${subject}&body=${body}`;
         }
