@@ -61,7 +61,7 @@
             background: radial-gradient(circle at center, #1e293b 0%, #0f172a 100%);
             color: #ffffff;
             z-index: 99999;
-            display: none; /* Controlled dynamically by JavaScript */
+            display: none;
             flex-direction: column;
             align-items: center;
             justify-content: center;
@@ -173,7 +173,7 @@
             width: 100%;
             font-size: 0.95rem;
             margin-top: 0.5rem;
-            display: none; /* Shown dynamically when beforeinstallprompt fires */
+            display: none;
             transition: all 0.2s ease;
             box-shadow: 0 4px 12px rgba(56, 189, 248, 0.2);
             text-transform: uppercase;
@@ -442,7 +442,7 @@
             line-height: 1.45;
             margin-top: 0.5rem;
             margin-bottom: 1rem;
-            display: none; /* Hidden by default; displayed dynamically when hasActiveDefect is true */
+            display: none;
             align-items: center;
             gap: 0.65rem;
             box-sizing: border-box;
@@ -470,7 +470,7 @@
             background-color: rgba(15, 23, 42, 0.65);
             backdrop-filter: blur(4px);
             z-index: 10000;
-            display: none; /* Controlled dynamically */
+            display: none;
             align-items: center;
             justify-content: center;
             padding: 1rem;
@@ -904,20 +904,14 @@
          * Gate Shield (Mobile Lockscreen Installation Enforcer)
          **************************************************************/
         function checkGateShield() {
-            // Check if device is mobile
             const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
-            
-            // Check standalone mode (PWA installed launch context)
             const isStandalone = window.matchMedia('(display-mode: standalone)').matches || window.navigator.standalone === true;
-            
-            // Check if the user previously dismissed the gate in this session (testing purposes)
             const isDismissed = sessionStorage.getItem('gps_gate_dismissed') === 'true';
 
             if (isMobile && !isStandalone && !isDismissed) {
                 const gateShield = document.getElementById('gateShield');
                 gateShield.style.display = 'flex';
 
-                // Detect OS and toggle respective instructions
                 const isiOS = /iPad|iPhone|iPod/.test(navigator.userAgent) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
                 
                 if (isiOS) {
@@ -928,20 +922,14 @@
             }
         }
 
-        // Native installation promoter (Android)
         window.addEventListener('beforeinstallprompt', (e) => {
             e.preventDefault();
             deferredPrompt = e;
             const nativeInstallBtn = document.getElementById('androidInstallBtn');
             const manualSteps = document.getElementById('androidManualSteps');
             
-            if (nativeInstallBtn) {
-                nativeInstallBtn.style.display = 'block';
-            }
-            if (manualSteps) {
-                // Dim down or hide standard steps when direct installer button is available
-                manualSteps.style.opacity = '0.5';
-            }
+            if (nativeInstallBtn) nativeInstallBtn.style.display = 'block';
+            if (manualSteps) manualSteps.style.opacity = '0.5';
         });
 
         function triggerNativeInstall() {
@@ -980,12 +968,9 @@
             });
 
             checkIds.forEach(id => {
-                if (!stateValues[id]) {
-                    selectCheck(id, 'PASS', false);
-                }
+                if (!stateValues[id]) selectCheck(id, 'PASS', false);
             });
 
-            // Always run baseline warning validation on launch
             updateWarningBox();
         };
 
@@ -997,7 +982,6 @@
                 const buttons = control.querySelectorAll('.segment-btn');
                 buttons.forEach(btn => {
                     btn.classList.remove('active-pass', 'active-fail', 'active-na');
-                    
                     if (btn.textContent.trim() === value) {
                         if (value === 'PASS') btn.classList.add('active-pass');
                         else if (value === 'FAIL') btn.classList.add('active-fail');
@@ -1017,10 +1001,7 @@
          * Local Storage Management
          **************************************************************/
         function saveInputs() {
-            const data = {
-                textInputs: {},
-                checkInputs: stateValues
-            };
+            const data = { textInputs: {}, checkInputs: stateValues };
             document.querySelectorAll('input, textarea').forEach(input => {
                 data.textInputs[input.id] = input.value;
             });
@@ -1058,9 +1039,7 @@
             toastIcon.textContent = isError ? '❌' : '✅';
             
             toast.style.display = 'flex';
-            setTimeout(() => {
-                toast.style.display = 'none';
-            }, 3000);
+            setTimeout(() => { toast.style.display = 'none'; }, 3000);
         }
 
         /**************************************************************
@@ -1069,16 +1048,12 @@
         function clearForm() {
             if (confirm("Are you sure you want to clear all inputs? This cannot be undone.")) {
                 localStorage.removeItem('gps_vehicle_check_cache');
-                document.querySelectorAll('input, textarea').forEach(input => {
-                    input.value = '';
-                });
+                document.querySelectorAll('input, textarea').forEach(input => input.value = '');
                 
                 const today = new Date().toISOString().split('T')[0];
                 document.getElementById('date').value = today;
 
-                checkIds.forEach(id => {
-                    selectCheck(id, 'PASS', false);
-                });
+                checkIds.forEach(id => selectCheck(id, 'PASS', false));
                 
                 saveInputs();
                 updateWarningBox();
@@ -1094,40 +1069,14 @@
         }
 
         // Helper to format date field
-        function formatDate() {
-            const v = document.getElementById('date').value;
-            if (!v) return '';
-            const parts = v.split('-'); 
-            return `${parts[2]}/${parts[1]}/${parts[0]}`;
-        }
-
-        // Helper to format compliance dates
-        function formatCustomDate(id) {
+        function formatDate(id = 'date') {
             const v = document.getElementById(id).value;
             if (!v) return '';
             const parts = v.split('-'); 
             return `${parts[2]}/${parts[1]}/${parts[0]}`;
         }
 
-        // Helper to calculate remaining days until a target date
-        function getDaysRemaining(targetId) {
-            const targetValue = document.getElementById(targetId).value;
-            const inspectDateValue = document.getElementById('date').value;
-            if (!targetValue || !inspectDateValue) return '';
-            
-            const targetDate = new Date(targetValue + 'T00:00:00');
-            const inspectDate = new Date(inspectDateValue + 'T00:00:00');
-            
-            const diffTime = targetDate - inspectDate;
-            const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
-            
-            if (diffDays <= 0) {
-                return "DUE NOW";
-            }
-            return `${diffDays} Day${diffDays > 1 ? 's' : ''}`;
-        }
-
-        // Helper to calculate raw remaining days (numeric value for conditions)
+        // Helper to calculate raw remaining days
         function getDaysRemainingValue(targetId) {
             const targetValue = document.getElementById(targetId).value;
             const inspectDateValue = document.getElementById('date').value;
@@ -1140,86 +1089,54 @@
             return Math.ceil(diffTime / (1000 * 60 * 60 * 24));
         }
 
-        // Helper to calculate remaining KMs until a target compliance mark
-        function getKmRemaining(targetId) {
-            const targetValue = parseInt(document.getElementById(targetId).value, 10);
-            const odomValue = parseInt(document.getElementById('odometer').value, 10);
-            if (isNaN(targetValue) || isNaN(odomValue)) return '';
-            
-            const diff = targetValue - odomValue;
-            if (diff <= 0) {
-                return "DUE NOW";
-            }
-            return `${diff} KM`;
+        function getDaysRemaining(targetId) {
+            const days = getDaysRemainingValue(targetId);
+            if (days === null) return '';
+            if (days <= 0) return "DUE NOW";
+            return `${days} Day${days > 1 ? 's' : ''}`;
         }
 
-        // Helper to calculate raw remaining KMs (numeric value for conditions)
+        // Helper to calculate raw remaining KMs
         function getKmRemainingValue(targetId) {
             const targetValue = parseInt(document.getElementById(targetId).value, 10);
             const odomValue = parseInt(document.getElementById('odometer').value, 10);
             if (isNaN(targetValue) || isNaN(odomValue)) return null;
-            
             return targetValue - odomValue;
         }
 
-        // Consolidated check logic to determine if active defects or FAIL checklist items exist
-        function checkForDefects() {
-            let hasActiveDefect = false;
-            for (const id of checkIds) {
-                if (stateValues[id] === 'FAIL') {
-                    hasActiveDefect = true;
-                }
-            }
-            const activeDefectText = document.getElementById('defects').value.trim();
-            if (activeDefectText !== "" && activeDefectText.toLowerCase() !== "no defects reported. vehicle fit for service.") {
-                hasActiveDefect = true;
-            }
-            return hasActiveDefect;
+        function getKmRemaining(targetId) {
+            const kms = getKmRemainingValue(targetId);
+            if (kms === null) return '';
+            if (kms <= 0) return "DUE NOW";
+            return `${kms} KM`;
         }
 
-        // Helper to build list of compliance warning alerts (rego etc 14 days or 1000km before due)
+        // Determine if active defects or FAIL checklist items exist
+        function checkForDefects() {
+            if (checkIds.some(id => stateValues[id] === 'FAIL')) return true;
+            
+            const activeDefectText = document.getElementById('defects').value.trim().toLowerCase();
+            return activeDefectText !== "" && activeDefectText !== "no defects reported. vehicle fit for service.";
+        }
+
+        // Build list of compliance warning alerts
         function getComplianceAlerts() {
             const alerts = [];
             
-            // WOF alert check (14 Days limit)
-            const wofDays = getDaysRemainingValue('wofDue');
-            if (wofDays !== null && wofDays <= 14) {
-                if (wofDays <= 0) {
-                    alerts.push("WOF DUE NOW");
-                } else {
-                    alerts.push(`WOF DUE in ${wofDays} DAY${wofDays > 1 ? 'S' : ''}`);
+            const checkAlert = (value, limit, unit, label) => {
+                if (value !== null && value <= limit) {
+                    if (value <= 0) {
+                        alerts.push(`${label} DUE NOW`);
+                    } else {
+                        alerts.push(`${label} DUE in ${value} ${unit}${unit === 'DAY' && value > 1 ? 'S' : ''}`);
+                    }
                 }
-            }
-            
-            // REGO alert check (14 Days limit)
-            const regoDays = getDaysRemainingValue('regoDue');
-            if (regoDays !== null && regoDays <= 14) {
-                if (regoDays <= 0) {
-                    alerts.push("REGO DUE NOW");
-                } else {
-                    alerts.push(`REGO DUE in ${regoDays} DAY${regoDays > 1 ? 'S' : ''}`);
-                }
-            }
-            
-            // RUC alert check (1000 KM limit)
-            const rucKm = getKmRemainingValue('rucDue');
-            if (rucKm !== null && rucKm <= 1000) {
-                if (rucKm <= 0) {
-                    alerts.push("RUC DUE NOW");
-                } else {
-                    alerts.push(`RUC DUE in ${rucKm} KM`);
-                }
-            }
-            
-            // Service alert check (1000 KM limit)
-            const serviceKm = getKmRemainingValue('serviceDue');
-            if (serviceKm !== null && serviceKm <= 1000) {
-                if (serviceKm <= 0) {
-                    alerts.push("SERVICE DUE NOW");
-                } else {
-                    alerts.push(`SERVICE DUE in ${serviceKm} KM`);
-                }
-            }
+            };
+
+            checkAlert(getDaysRemainingValue('wofDue'), 14, 'DAY', 'WOF');
+            checkAlert(getDaysRemainingValue('regoDue'), 14, 'DAY', 'REGO');
+            checkAlert(getKmRemainingValue('rucDue'), 1000, 'KM', 'RUC');
+            checkAlert(getKmRemainingValue('serviceDue'), 1000, 'KM', 'SERVICE');
             
             return alerts;
         }
@@ -1247,14 +1164,12 @@
             let lines = [];
             while (text.length > 0) {
                 let chunk = text.substring(0, maxRightColumnWidth);
-                
                 if (text.length > maxRightColumnWidth) {
                     let lastSpace = chunk.lastIndexOf(" ");
                     if (lastSpace > maxRightColumnWidth * 0.4) {
                         chunk = text.substring(0, lastSpace);
                     }
                 }
-                
                 lines.push(chunk.trim());
                 text = text.substring(chunk.length).trim();
             }
@@ -1267,29 +1182,24 @@
         }
 
         function updateWarningBox() {
-            const hasActiveDefect = checkForDefects();
-
-            // Dynamically manage photo warning visibility and styling (Now embedded below the defects input box on the left)
             const warningBox = document.getElementById('defectPhotoWarning');
-            const icon = document.getElementById('warningBoxIcon');
-            const boxText = document.getElementById('warningBoxText');
-            if (warningBox) {
-                if (hasActiveDefect) {
-                    warningBox.style.display = 'flex'; // Make visible when a FAIL/defect is active
-                    warningBox.style.backgroundColor = '#fef2f2';
-                    warningBox.style.borderColor = 'var(--danger)';
-                    warningBox.style.color = '#991b1b';
-                    icon.textContent = '⚠️';
-                    boxText.innerHTML = '<strong>Action Required:</strong> Please attach photos of defects to email before sending.';
-                } else {
-                    warningBox.style.display = 'none'; // Completely hidden when everything is PASS/neutral
-                }
+            if (!warningBox) return;
+
+            if (checkForDefects()) {
+                warningBox.style.display = 'flex';
+                warningBox.style.backgroundColor = '#fef2f2';
+                warningBox.style.borderColor = 'var(--danger)';
+                warningBox.style.color = '#991b1b';
+                document.getElementById('warningBoxIcon').textContent = '⚠️';
+                document.getElementById('warningBoxText').innerHTML = '<strong>Action Required:</strong> Please attach photos of defects to email before sending.';
+            } else {
+                warningBox.style.display = 'none';
             }
         }
 
         function buildReportText() {
             const regoVal = (document.getElementById('rego').value || '[REGO]').toUpperCase();
-            const dateVal = formatDate() || '[DATE]';
+            const dateVal = formatDate('date') || '[DATE]';
             const driverVal = document.getElementById('driver').value || '[DRIVER]';
             const odometerVal = document.getElementById('odometer').value ? document.getElementById('odometer').value + " KM" : '[ODOMETER READING]';
             
@@ -1302,10 +1212,10 @@
             const rucDueVal = rucDueRaw ? rucDueRaw + " KM" + (rucKm ? ` (${rucKm})` : '') : '[RUC DUE]';
 
             const wofDays = getDaysRemaining('wofDue');
-            const wofDueVal = formatCustomDate('wofDue') ? formatCustomDate('wofDue') + (wofDays ? ` (${wofDays})` : '') : '[WOF DUE]';
+            const wofDueVal = formatDate('wofDue') ? formatDate('wofDue') + (wofDays ? ` (${wofDays})` : '') : '[WOF DUE]';
 
             const regoDays = getDaysRemaining('regoDue');
-            const regoDueVal = formatCustomDate('regoDue') ? formatCustomDate('regoDue') + (regoDays ? ` (${regoDays})` : '') : '[REGO DUE]';
+            const regoDueVal = formatDate('regoDue') ? formatDate('regoDue') + (regoDays ? ` (${regoDays})` : '') : '[REGO DUE]';
             
             let txt = "GOODWIN PILOTING SERVICES DAILY VEHICLE PRE-START\n\n";
             
@@ -1400,7 +1310,7 @@
 
         function sendViaEmail() {
             const rego = (document.getElementById('rego').value || '[REGO]').toUpperCase();
-            const dateStr = formatDate() || '[DATE]';
+            const dateStr = formatDate('date') || '[DATE]';
             const outputText = buildReportText();
             const hasFail = checkForDefects();
             
